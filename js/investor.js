@@ -1,110 +1,78 @@
 ﻿// --- RELATIONAL DATA MODEL (Backend Friendly) ---
         let currentTab = 'overview';
         
-        // Investor Profile Info
+        // Investor Profile Info — load from localStorage or defaults
         let profileData = {
             id: 201,
-            name: 'Demo Investor',
-            title: 'Managing Partner at Venture BD',
-            location: 'Dhaka, Bangladesh',
-            email: 'investor@venturebd.com',
-            linkedin: 'https://linkedin.com/in/demoinvestor',
-            bio: 'Experienced investor focusing on early-stage tech startups in South Asia. Looking for founders with strong execution skills.',
-            ticketSize: '$50k - $200k',
+            name: localStorage.getItem('investorName') || 'Demo Investor',
+            title: localStorage.getItem('investorTitle') || 'Managing Partner',
+            location: localStorage.getItem('investorLocation') || 'Dhaka, Bangladesh',
+            email: localStorage.getItem('investorEmail') || 'investor@venturebd.com',
+            linkedin: localStorage.getItem('investorLinkedin') || 'https://linkedin.com/in/demoinvestor',
+            bio: localStorage.getItem('investorBio') || 'Experienced investor focusing on early-stage tech startups in South Asia.',
+            ticketSize: localStorage.getItem('investorTicketSize') || '$50k - $200k',
             stageFocus: ['Seed', 'Pre-Seed'],
-            industryFocus: ['FinTech', 'AgriTech', 'SaaS']
+            industryFocus: (localStorage.getItem('investorIndustryFocus') || 'FinTech, AgriTech, SaaS').split(',').map(s => s.trim())
         };
 
-        // Master Startup List (Detailed for Founders & Ideas Section)
-        const startupList = [
-            { 
-                id: 1, 
-                name: 'Krishi-AI', 
-                founder: 'Rahim Uddin', 
-                industry: 'AgriTech', 
-                stage: 'Pre-Seed', 
-                raising: '$50,000', 
-                valuation: '$500,000', 
-                description: 'AI platform to help farmers diagnose crop diseases and get solutions.',
-                problem: 'Farmers lack access to immediate agricultural experts, leading to delayed disease detection and massive crop yield losses annually.',
-                vision: 'To empower every rural farmer with pocket-sized AI diagnostics, ensuring maximum yield and food security.',
-                businessPlan: 'Freemium model: Basic disease diagnosis is free. Premium subscription provides predictive analytics, weather alerts, and direct consultation with agronomists. Revenue from subscriptions and B2B data licensing.',
-                linkedin: 'https://linkedin.com/in/rahim',
-                email: 'rahim@krishi-ai.com',
-                matchScore: 95 
-            },
-            { 
-                id: 2, 
-                name: 'FinSheba', 
-                founder: 'Sadia Rahman', 
-                industry: 'FinTech', 
-                stage: 'Seed', 
-                raising: '$200,000', 
-                valuation: '$2,000,000', 
-                description: 'Simple banking app for rural Bangladesh with mobile money integration.',
-                problem: 'Over 40% of rural adults do not have access to formal banking or micro-loans.',
-                vision: 'A financially inclusive society where anyone can access credit via their basic mobile phone.',
-                businessPlan: 'Partnering with local telecom providers. Revenue generated from small transaction fees and interest on micro-loans.',
-                linkedin: 'https://linkedin.com/in/sadia', 
-                email: 'sadia@finsheba.com',
-                matchScore: 88 
-            },
-            { 
-                id: 3, 
-                name: 'EduBridge', 
-                founder: 'Nadia Islam', 
-                industry: 'EdTech', 
-                stage: 'Seed', 
-                raising: '$100,000', 
-                valuation: '$1,000,000', 
-                description: 'Affordable online courses for rural students with offline support.',
-                problem: 'Students in remote areas lack access to quality educational content and stable internet connections.',
-                vision: 'Bridging the education gap by providing world-class learning materials accessible anywhere, offline.',
-                businessPlan: 'B2B sales to local schools and NGOs, alongside a low-cost B2C subscription for individual students.',
-                linkedin: 'https://linkedin.com/in/nadia', 
-                email: 'nadia@edubridge.com',
-                matchScore: 45 
-            },
-            { 
-                id: 4, 
-                name: 'HealthBuddy', 
-                founder: 'Karim Ahmed', 
-                industry: 'HealthTech', 
-                stage: 'Series A', 
-                raising: '$1,000,000', 
-                valuation: '$10,000,000', 
-                description: 'Telemedicine platform connecting rural patients with urban doctors.',
-                problem: 'Rural patients travel up to 50km just to consult a registered doctor for basic ailments.',
-                vision: 'To build the largest decentralized digital hospital network in South Asia.',
-                businessPlan: 'Revenue from consultation fees (commission model) and partnerships with local pharmacies for medicine delivery.',
-                linkedin: 'https://linkedin.com/in/karim', 
-                email: 'karim@healthbuddy.com',
-                matchScore: 30 
-            }
-        ];
+        // Master Startup List — will be loaded from Firebase  
+        let startupList = [];
 
-        // Founders List (Mapped from startupList for the new section)
-        const foundersList = startupList.map(startup => ({
-            id: startup.id,
-            name: startup.founder,
-            startup: startup.name,
-            industry: startup.industry,
-            stage: startup.stage,
-            bio: `Founder of ${startup.name}. Driving innovation in ${startup.industry}.`,
-            problem: startup.problem,
-            vision: startup.vision,
-            linkedin: startup.linkedin,
-            email: startup.email,
-            requirements: ['Investment', 'Strategic Partnerships'] // Placeholder
-        }));
+        // Founders List — will be loaded from Firebase
+        let foundersList = [];
+
+        // --- FETCH REAL FOUNDERS FROM FIREBASE ---
+        function fetchFoundersFromFirebase() {
+            if (typeof firebase === 'undefined' || !firebase.database) return Promise.resolve();
+            return firebase.database().ref('users/founders').once('value').then(function(snap) {
+                var data = snap.val();
+                startupList = [];
+                foundersList = [];
+                if (data) {
+                    var idx = 1;
+                    Object.keys(data).forEach(function(key) {
+                        var f = data[key];
+                        startupList.push({
+                            id: idx,
+                            name: f.startupName || f.name + "'s Startup",
+                            founder: f.name || 'Unknown',
+                            industry: f.industry || 'General',
+                            stage: f.stage || 'Pre-Seed',
+                            raising: f.fundingNeeded || 'Not Disclosed',
+                            valuation: f.valuation || 'Not Disclosed',
+                            description: f.bio || 'No description provided.',
+                            problem: f.problem || '',
+                            vision: f.vision || '',
+                            businessPlan: f.businessPlan || '',
+                            linkedin: f.linkedin || '',
+                            email: f.email || '',
+                            matchScore: Math.floor(Math.random() * 40) + 60
+                        });
+                        foundersList.push({
+                            id: idx,
+                            name: f.name || 'Unknown',
+                            startup: f.startupName || f.name + "'s Startup",
+                            industry: f.industry || 'General',
+                            stage: f.stage || 'Pre-Seed',
+                            bio: f.bio || 'Founder on Foundera platform.',
+                            problem: f.problem || '',
+                            vision: f.vision || '',
+                            linkedin: f.linkedin || '',
+                            email: f.email || '',
+                            requirements: f.skills ? f.skills.split(',').map(function(s) { return s.trim(); }) : ['Team Members']
+                        });
+                        idx++;
+                    });
+                }
+                console.log('Investor: Loaded ' + foundersList.length + ' founders from Firebase');
+            });
+        }
 
         // User specific state
-        let watchlistIds = [2]; // ID of startups in watchlist
+        let watchlistIds = []; // Empty by default — will work with real data
         
         // Portfolio: Startups this investor has already invested in
-        let portfolio = [
-            { id: 1, startupId: 1, amountInvested: '$25,000', date: '2025-08-15', currentValuation: '$35,000' }
-        ];
+        let portfolio = [];
 
         // --- STATE MANAGEMENT FUNCTIONS ---
         function setTab(tab) {
@@ -121,7 +89,7 @@
             document.getElementById('portfolio-count-badge').textContent = portfolio.length;
         }
 
-        // Profile Update
+        // Profile Update — save to localStorage + Firebase
         function saveProfileInfo(event) {
             event.preventDefault();
             const fd = new FormData(event.target);
@@ -134,13 +102,62 @@
             profileData.bio = fd.get('bio');
             profileData.ticketSize = fd.get('ticketSize');
             
-            // Simplified handling for multiple select/checkbox in demo
             const industries = fd.get('industryFocus');
             if(industries) profileData.industryFocus = industries.split(',').map(i => i.trim());
 
             document.getElementById('user-initial').textContent = profileData.name.charAt(0).toUpperCase();
+            
+            // Save to localStorage
+            localStorage.setItem('investorName', profileData.name);
+            localStorage.setItem('investorTitle', profileData.title);
+            localStorage.setItem('investorLocation', profileData.location);
+            localStorage.setItem('investorEmail', profileData.email);
+            localStorage.setItem('investorLinkedin', profileData.linkedin);
+            localStorage.setItem('investorBio', profileData.bio);
+            localStorage.setItem('investorTicketSize', profileData.ticketSize);
+            localStorage.setItem('investorIndustryFocus', profileData.industryFocus.join(', '));
+            
+            // Save to Firebase
+            saveInvestorProfileToFirebase();
+            
             alert('Profile and Preferences Updated! AI Matching will now use this data.');
             renderContent();
+        }
+        
+        // --- SAVE INVESTOR PROFILE TO FIREBASE ---
+        function saveInvestorProfileToFirebase() {
+            if (typeof firebase === 'undefined' || !firebase.database) return;
+            var safeKey = profileData.email.replace(/[.#$\[\]]/g, '_');
+            var db = firebase.database();
+            var investorData = {
+                name: profileData.name,
+                title: profileData.title,
+                location: profileData.location,
+                email: profileData.email,
+                linkedin: profileData.linkedin,
+                bio: profileData.bio,
+                ticketSize: profileData.ticketSize,
+                industryFocus: profileData.industryFocus,
+                role: 'Investor',
+                profileUpdatedAt: new Date().toISOString()
+            };
+            db.ref('users/investors/' + safeKey).update(investorData)
+                .then(function() { console.log('Investor profile saved to Firebase'); })
+                .catch(function(e) { console.error('Firebase save error:', e); });
+        }
+        
+        // --- LOGOUT FUNCTION ---
+        function handleLogout() {
+            localStorage.removeItem('investorName');
+            localStorage.removeItem('investorEmail');
+            localStorage.removeItem('investorTitle');
+            localStorage.removeItem('investorLocation');
+            localStorage.removeItem('investorLinkedin');
+            localStorage.removeItem('investorBio');
+            localStorage.removeItem('investorTicketSize');
+            localStorage.removeItem('investorIndustryFocus');
+            localStorage.removeItem('investorPicture');
+            window.location.href = 'index.html';
         }
 
         // Watchlist Logic
@@ -316,8 +333,17 @@
 
         // New Section: Founders & Detailed Ideas
         function renderFounders() {
+            if (startupList.length === 0) {
+                return `
+                    <div class="text-center py-20 bg-gray-800/40 rounded-2xl border border-gray-700/50">
+                        <i data-lucide="users" class="w-16 h-16 text-gray-500 mx-auto mb-4"></i>
+                        <h2 class="text-2xl font-bold text-white mb-2">No Founders Found Yet</h2>
+                        <p class="text-gray-400">When founders create their profiles on Foundera, they will appear here.</p>
+                    </div>`;
+            }
             return `
                 <div class="space-y-6 animate-fade-in">
+                    <p class="text-sm text-gray-400"><i data-lucide="database" class="w-4 h-4 inline mr-1"></i> Showing <strong class="text-white">${startupList.length}</strong> real founders from database</p>
                     <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 shadow-lg mb-6">
                         <div class="flex flex-col md:flex-row gap-4">
                             <div class="flex-1 relative">
@@ -410,6 +436,14 @@
         }
 
         function renderExplore() {
+            if (startupList.length === 0) {
+                return `
+                    <div class="text-center py-20 bg-gray-800/40 rounded-2xl border border-gray-700/50">
+                        <i data-lucide="compass" class="w-16 h-16 text-gray-500 mx-auto mb-4"></i>
+                        <h2 class="text-2xl font-bold text-white mb-2">No Startups to Match Yet</h2>
+                        <p class="text-gray-400">When founders create their profiles and ideas, AI matches will appear here.</p>
+                    </div>`;
+            }
             // Sort by Match Score for AI Matching
             const sortedStartups = [...startupList].sort((a,b) => b.matchScore - a.matchScore);
 
@@ -557,7 +591,13 @@ function toggleMobileSidebar() {
 }
         // --- INIT ---
         document.getElementById('user-initial').textContent = profileData.name.charAt(0).toUpperCase();
-        setTab('overview');
+        
+        // Load real founders data from Firebase
+        fetchFoundersFromFirebase().then(function() {
+            setTab('overview');
+        }).catch(function() {
+            setTab('overview');
+        });
 
 // --- PRELOADER ---
 window.addEventListener('load', function() {

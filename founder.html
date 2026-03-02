@@ -9,6 +9,24 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/founder.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD3TUXLt1wvQG3vtR3IRV7SkUQ30wdFg_c",
+            authDomain: "foundera-6b9c3.firebaseapp.com",
+            databaseURL: "https://foundera-6b9c3-default-rtdb.firebaseio.com",
+            projectId: "foundera-6b9c3",
+            storageBucket: "foundera-6b9c3.firebasestorage.app",
+            messagingSenderId: "620809869635",
+            appId: "1:620809869635:web:73098803175365ea8af7f6",
+            measurementId: "G-XKMM3285ZY"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+    </script>
 </head>
 <body class="bg-gray-900 text-white min-h-screen font-sans">
     <!-- Preloader -->

@@ -30,7 +30,7 @@
             window.location.href = 'index.html';
         }
         
-        // --- SAVE PROFILE TO LOCALSTORAGE ---
+        // --- SAVE PROFILE TO LOCALSTORAGE + FIREBASE ---
         function saveProfileToStorage() {
             localStorage.setItem('founderName', profileData.name);
             localStorage.setItem('founderEmail', profileData.email);
@@ -39,6 +39,30 @@
             localStorage.setItem('founderBio', profileData.bio);
             localStorage.setItem('founderSkills', profileData.skills);
             localStorage.setItem('founderAvailability', profileData.availability);
+            
+            // Also save to Firebase
+            saveFounderProfileToFirebase();
+        }
+        
+        // --- SAVE FOUNDER PROFILE TO FIREBASE ---
+        function saveFounderProfileToFirebase() {
+            if (typeof firebase === 'undefined' || !firebase.database) return;
+            var safeKey = profileData.email.replace(/[.#$\[\]]/g, '_');
+            var db = firebase.database();
+            var founderData = {
+                name: profileData.name,
+                email: profileData.email,
+                linkedin: profileData.linkedin,
+                github: profileData.github,
+                bio: profileData.bio,
+                skills: profileData.skills,
+                availability: profileData.availability,
+                role: 'Founder',
+                profileUpdatedAt: new Date().toISOString()
+            };
+            db.ref('users/founders/' + safeKey).update(founderData)
+                .then(function() { console.log('Founder profile saved to Firebase'); })
+                .catch(function(e) { console.error('Firebase save error:', e); });
         }
         
         // --- LOAD IDEAS FROM LOCALSTORAGE ---
@@ -57,20 +81,85 @@
         // Ideas array - will be loaded from localStorage
         let ideas = [];
 
-        const talents = [
-            { id: 1, name: 'Anik Hasan', role: 'Full Stack Developer', skills: ['React', 'Node.js', 'MongoDB', 'Python'], experience: '3 Years', rating: 4.8, projects: 15, available: true, avatar: 'A' },
-            { id: 2, name: 'Nusrat Jahan', role: 'UI/UX Designer', skills: ['Figma', 'Adobe XD', 'UI/UX', 'Research'], experience: '2 Years', rating: 4.9, projects: 22, available: true, avatar: 'N' },
-            { id: 3, name: 'Rafiq Ahmed', role: 'Mobile Developer', skills: ['Flutter', 'React Native', 'Firebase', 'Mobile App'], experience: '4 Years', rating: 4.7, projects: 18, available: false, avatar: 'R' },
-            { id: 4, name: 'Tasnim Islam', role: 'AI/ML Engineer', skills: ['Python', 'TensorFlow', 'AI/ML', 'Data Science'], experience: '3 Years', rating: 4.9, projects: 10, available: true, avatar: 'T' },
-            { id: 5, name: 'Sohel Rana', role: 'Backend Developer', skills: ['Node.js', 'Cybersecurity', 'AWS', 'Java'], experience: '5 Years', rating: 4.6, projects: 25, available: true, avatar: 'S' }
-        ];
+        // Real data from Firebase — loaded dynamically
+        let talents = [];
+        let investors = [];
+        let firebaseDataLoaded = false;
 
-        const investors = [
-            { id: 1, name: 'Venture BD', focus: ['AgriTech', 'EdTech'], ticketSize: '$10k - $100k', totalInvested: '$2.5M', portfolio: 15, interested: true },
-            { id: 2, name: 'Global Seed Fund', focus: ['FinTech', 'HealthTech', 'AI/ML'], ticketSize: '$50k - $500k', totalInvested: '$10M', portfolio: 30, interested: false },
-            { id: 3, name: 'Bangladesh Angels', focus: ['SaaS', 'E-commerce', 'EdTech'], ticketSize: '$25k - $200k', totalInvested: '$5M', portfolio: 20, interested: true },
-            { id: 4, name: 'Tech Capital BD', focus: ['AI/ML', 'FinTech', 'AgriTech'], ticketSize: '$100k - $1M', totalInvested: '$15M', portfolio: 12, interested: false }
-        ];
+        // --- FETCH REAL JOB SEEKERS FROM FIREBASE ---
+        function fetchJobSeekersFromFirebase() {
+            if (typeof firebase === 'undefined' || !firebase.database) return Promise.resolve();
+            return firebase.database().ref('users/jobseekers').once('value').then(function(snap) {
+                var data = snap.val();
+                talents = [];
+                if (data) {
+                    Object.keys(data).forEach(function(key) {
+                        var s = data[key];
+                        talents.push({
+                            id: key,
+                            name: s.name || 'Unknown',
+                            role: s.title || 'Job Seeker',
+                            skills: Array.isArray(s.skills) ? s.skills : (s.skills ? String(s.skills).split(',').map(function(sk) { return sk.trim(); }) : []),
+                            experience: s.experience || 'N/A',
+                            rating: s.rating || 0,
+                            projects: s.projects || 0,
+                            available: s.availability === 'Immediately' || s.availability === 'Available',
+                            avatar: (s.name || 'U').charAt(0).toUpperCase(),
+                            email: s.email || '',
+                            linkedin: s.linkedin || '',
+                            github: s.github || '',
+                            bio: s.bio || '',
+                            location: s.location || '',
+                            expectedSalary: s.expectedSalary || ''
+                        });
+                    });
+                }
+                console.log('Loaded ' + talents.length + ' job seekers from Firebase');
+            });
+        }
+
+        // --- FETCH REAL INVESTORS FROM FIREBASE ---
+        function fetchInvestorsFromFirebase() {
+            if (typeof firebase === 'undefined' || !firebase.database) return Promise.resolve();
+            return firebase.database().ref('users/investors').once('value').then(function(snap) {
+                var data = snap.val();
+                investors = [];
+                if (data) {
+                    Object.keys(data).forEach(function(key) {
+                        var inv = data[key];
+                        investors.push({
+                            id: key,
+                            name: inv.name || 'Unknown Investor',
+                            focus: Array.isArray(inv.industryFocus) ? inv.industryFocus : (inv.industryFocus ? String(inv.industryFocus).split(',').map(function(f) { return f.trim(); }) : []),
+                            ticketSize: inv.ticketSize || 'Not specified',
+                            totalInvested: inv.totalInvested || '$0',
+                            portfolio: inv.portfolio || 0,
+                            interested: true,
+                            email: inv.email || '',
+                            linkedin: inv.linkedin || '',
+                            bio: inv.bio || '',
+                            title: inv.title || '',
+                            location: inv.location || ''
+                        });
+                    });
+                }
+                console.log('Loaded ' + investors.length + ' investors from Firebase');
+            });
+        }
+
+        // --- LOAD ALL FIREBASE DATA ---
+        function loadFirebaseData() {
+            return Promise.all([
+                fetchJobSeekersFromFirebase(),
+                fetchInvestorsFromFirebase()
+            ]).then(function() {
+                firebaseDataLoaded = true;
+                // Re-render current content with real data
+                renderContent();
+            }).catch(function(e) {
+                console.error('Error loading Firebase data:', e);
+            });
+        }
 
         // --- FUNCTIONS ---
         function setTab(tab, dataId = null) {
@@ -284,7 +373,7 @@
                         </div>
                         <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 flex flex-col items-center justify-center text-center shadow hover:border-purple-500/50 transition-colors">
                             <i data-lucide="briefcase" class="w-8 h-8 text-purple-400 mb-3"></i>
-                            <span class="text-3xl font-bold text-white">3</span>
+                            <span class="text-3xl font-bold text-white">${investors.length}</span>
                             <span class="text-xs text-gray-400 uppercase tracking-wider mt-2 font-medium">Investor Matches</span>
                         </div>
                         <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 flex flex-col items-center justify-center text-center shadow hover:border-yellow-500/50 transition-colors">
@@ -453,12 +542,12 @@
                                                     <p class="text-xs text-gray-400">${t.role}</p>
                                                 </div>
                                             </div>
-                                            <div class="text-right">
-                                                <span class="text-green-400 font-bold text-sm bg-green-500/10 px-2 py-1 rounded">${t.matchScore}% Match</span>
-                                                <button class="block w-full text-center text-xs text-blue-400 hover:text-blue-300 font-bold mt-2">View Profile</button>
+                                            <div class="text-right flex items-center gap-2">
+                                                <span class="text-green-400 font-bold text-sm bg-green-500/10 px-2 py-1 rounded">${t.matchScore}%</span>
+                                                ${t.email ? `<a href="mailto:${t.email}" class="text-xs text-blue-400 hover:text-blue-300 font-bold bg-blue-500/10 px-2 py-1 rounded" title="Email ${t.name}"><i data-lucide="mail" class="w-3 h-3 inline"></i></a>` : ''}
                                             </div>
                                         </div>
-                                    `).join('') : '<p class="text-sm text-gray-500 italic">No matching talent found yet.</p>'}
+                                    `).join('') : '<p class="text-sm text-gray-500 italic">No matching talent found yet. When job seekers join Foundera, matches will appear here.</p>'}
                                 </div>
                             </div>
 
@@ -477,9 +566,11 @@
                                                     <p class="text-xs text-gray-400">Invests in: <span class="text-gray-300">${inv.focus.join(', ')}</span></p>
                                                 </div>
                                             </div>
-                                            <button class="bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded-lg text-xs font-bold text-white shadow-lg transition-colors">Pitch</button>
+                                            <div class="flex items-center gap-2">
+                                                ${inv.email ? `<a href="mailto:${inv.email}" class="bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded-lg text-xs font-bold text-white shadow-lg transition-colors">Pitch</a>` : `<span class="bg-gray-700 px-3 py-2 rounded-lg text-xs text-gray-400">No Contact</span>`}
+                                            </div>
                                         </div>
-                                    `).join('') : '<p class="text-sm text-gray-500 italic">No matching investors found yet.</p>'}
+                                    `).join('') : '<p class="text-sm text-gray-500 italic">No matching investors found yet. When investors join Foundera, matches will appear here.</p>'}
                                 </div>
                             </div>
                         </div>
@@ -772,6 +863,24 @@
         }
 
         function renderTalent() {
+            if (!firebaseDataLoaded) {
+                return `
+                    <div class="text-center py-20 bg-gray-800/40 rounded-2xl border border-gray-700/50">
+                        <div class="w-12 h-12 rounded-full border-4 border-gray-700 loader mb-4 mx-auto"></div>
+                        <p class="text-gray-400">Loading talent from database...</p>
+                    </div>`;
+            }
+            
+            if (talents.length === 0) {
+                return `
+                    <div class="text-center py-20 bg-gray-800/40 rounded-2xl border border-gray-700/50">
+                        <i data-lucide="users" class="w-16 h-16 text-gray-500 mx-auto mb-4"></i>
+                        <h2 class="text-2xl font-bold text-white mb-2">No Job Seekers Found Yet</h2>
+                        <p class="text-gray-400 mb-2">When job seekers create their profiles on Foundera, they will appear here.</p>
+                        <p class="text-gray-500 text-sm">Share your startup idea to attract talent!</p>
+                    </div>`;
+            }
+            
             return `
                 <div class="space-y-6">
                     <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 flex flex-wrap gap-4 shadow-sm">
@@ -779,12 +888,9 @@
                             <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
                             <input type="text" placeholder="Search by name or React, Python, etc..." class="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-white">
                         </div>
-                        <select class="px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white">
-                            <option>All Roles</option>
-                            <option>Developer</option>
-                            <option>Designer</option>
-                        </select>
                     </div>
+
+                    <p class="text-sm text-gray-400"><i data-lucide="database" class="w-4 h-4 inline mr-1"></i> Showing <strong class="text-white">${talents.length}</strong> real job seekers from database</p>
 
                     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                         ${talents.map(talent => `
@@ -799,14 +905,15 @@
                                     </div>
                                     <span class="px-2 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider ${talent.available ? 'bg-green-500/20 text-green-400' : 'bg-gray-700 text-gray-400'}">${talent.available ? 'Available' : 'Busy'}</span>
                                 </div>
+                                ${talent.bio ? `<p class="text-gray-400 text-xs mb-3 line-clamp-2">${talent.bio}</p>` : ''}
                                 <div class="flex flex-wrap gap-1 mb-4">
                                     ${talent.skills.map(skill => `<span class="bg-gray-900 border border-gray-700 text-gray-300 text-xs px-2 py-1 rounded">${skill}</span>`).join('')}
                                 </div>
-                                <div class="flex items-center justify-between text-sm text-gray-400 mb-6 bg-gray-900/50 p-3 rounded-xl">
-                                    <span class="flex items-center"><i data-lucide="briefcase" class="w-4 h-4 mr-1"></i> ${talent.experience}</span>
-                                    <span class="flex items-center text-yellow-400"><i data-lucide="star" class="w-4 h-4 mr-1 fill-current"></i> ${talent.rating}</span>
+                                ${talent.expectedSalary ? `<p class="text-xs text-gray-500 mb-3">Expected: <span class="text-green-400">${talent.expectedSalary}</span></p>` : ''}
+                                <div class="flex gap-2 mt-4">
+                                    ${talent.email ? `<a href="mailto:${talent.email}" class="flex-1 border border-blue-500/50 hover:bg-blue-500/10 text-blue-400 py-2.5 rounded-xl text-sm font-bold transition-colors text-center flex items-center justify-center"><i data-lucide="mail" class="w-4 h-4 mr-1"></i> Email</a>` : ''}
+                                    ${talent.linkedin ? `<a href="${talent.linkedin}" target="_blank" class="flex-1 border border-gray-600 hover:bg-gray-700 text-gray-300 py-2.5 rounded-xl text-sm font-bold transition-colors text-center flex items-center justify-center"><i data-lucide="linkedin" class="w-4 h-4 mr-1"></i> LinkedIn</a>` : ''}
                                 </div>
-                                <button class="w-full border border-blue-500/50 hover:bg-blue-500/10 text-blue-400 py-2.5 rounded-xl text-sm font-bold transition-colors">View Profile & Get Contact Info</button>
                             </div>
                         `).join('')}
                     </div>
@@ -815,30 +922,50 @@
         }
 
         function renderInvestors() {
+            if (!firebaseDataLoaded) {
+                return `
+                    <div class="text-center py-20 bg-gray-800/40 rounded-2xl border border-gray-700/50">
+                        <div class="w-12 h-12 rounded-full border-4 border-gray-700 loader mb-4 mx-auto"></div>
+                        <p class="text-gray-400">Loading investors from database...</p>
+                    </div>`;
+            }
+            
+            if (investors.length === 0) {
+                return `
+                    <div class="text-center py-20 bg-gray-800/40 rounded-2xl border border-gray-700/50">
+                        <i data-lucide="trending-up" class="w-16 h-16 text-gray-500 mx-auto mb-4"></i>
+                        <h2 class="text-2xl font-bold text-white mb-2">No Investors Found Yet</h2>
+                        <p class="text-gray-400 mb-2">When investors create their profiles on Foundera, they will appear here.</p>
+                        <p class="text-gray-500 text-sm">Complete your idea to attract investors!</p>
+                    </div>`;
+            }
+            
             return `
                 <div class="space-y-6">
+                    <p class="text-sm text-gray-400"><i data-lucide="database" class="w-4 h-4 inline mr-1"></i> Showing <strong class="text-white">${investors.length}</strong> real investors from database</p>
+                    
                     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                         ${investors.map(inv => `
                             <div class="bg-gray-800/30 rounded-2xl border border-gray-700/50 p-6 card-hover shadow-lg relative overflow-hidden">
-                                ${inv.interested ? '<div class="absolute -right-8 top-4 bg-green-500 text-white text-[10px] font-bold py-1 px-10 rotate-45 shadow-lg">HOT</div>' : ''}
                                 <div class="flex items-center mb-4">
                                     <div class="bg-purple-500/20 p-3 rounded-xl mr-4 border border-purple-500/30">
                                         <i data-lucide="building-2" class="w-6 h-6 text-purple-400"></i>
                                     </div>
                                     <div>
                                         <h3 class="font-bold text-lg text-white">${inv.name}</h3>
+                                        ${inv.title ? `<p class="text-xs text-gray-400">${inv.title}</p>` : ''}
                                         <p class="text-xs text-gray-400">Ticket: ${inv.ticketSize}</p>
                                     </div>
                                 </div>
+                                ${inv.bio ? `<p class="text-gray-400 text-xs mb-3 line-clamp-2">${inv.bio}</p>` : ''}
                                 <div class="flex flex-wrap gap-2 mb-4">
                                     ${inv.focus.map(f => `<span class="bg-gray-900 border border-gray-700 text-purple-300 text-xs px-2 py-1 rounded-md">${f}</span>`).join('')}
                                 </div>
-                                <div class="flex items-center justify-between text-sm text-gray-400 mb-6 bg-gray-900/50 p-3 rounded-xl border border-gray-700">
-                                    <div class="text-center"><span class="block text-white font-bold">${inv.totalInvested}</span><span class="text-[10px] uppercase">Invested</span></div>
-                                    <div class="w-px h-8 bg-gray-700"></div>
-                                    <div class="text-center"><span class="block text-white font-bold">${inv.portfolio}</span><span class="text-[10px] uppercase">Portfolio</span></div>
+                                ${inv.location ? `<p class="text-xs text-gray-500 mb-4"><i data-lucide="map-pin" class="w-3 h-3 inline mr-1"></i>${inv.location}</p>` : ''}
+                                <div class="flex gap-2 mt-4">
+                                    ${inv.email ? `<a href="mailto:${inv.email}" class="flex-1 founder-btn text-white py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 text-center flex items-center justify-center"><i data-lucide="mail" class="w-4 h-4 mr-1"></i> Send Pitch</a>` : ''}
+                                    ${inv.linkedin ? `<a href="${inv.linkedin}" target="_blank" class="flex-1 border border-gray-600 hover:bg-gray-700 text-gray-300 py-2.5 rounded-xl text-sm font-bold transition-colors text-center flex items-center justify-center"><i data-lucide="linkedin" class="w-4 h-4 mr-1"></i> LinkedIn</a>` : ''}
                                 </div>
-                                <button class="w-full founder-btn text-white py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20">Send Pitch & Request Call</button>
                             </div>
                         `).join('')}
                     </div>
@@ -865,6 +992,9 @@
         if (!localStorage.getItem('founderName')) {
             // Allow demo access but show default name
         }
+        
+        // Load real data from Firebase (investors + job seekers)
+        loadFirebaseData();
         
         // Ekhon login/page load korar sathe sathe 'overview' tab e jabe
         setTab('overview');

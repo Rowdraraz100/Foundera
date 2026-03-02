@@ -45,6 +45,33 @@
             localStorage.setItem('seekerBio', profileData.bio);
             localStorage.setItem('seekerAvailability', profileData.availability);
             localStorage.setItem('seekerSalary', profileData.expectedSalary);
+            
+            // Also save to Firebase
+            saveJobseekerProfileToFirebase();
+        }
+        
+        // --- SAVE JOBSEEKER PROFILE TO FIREBASE ---
+        function saveJobseekerProfileToFirebase() {
+            if (typeof firebase === 'undefined' || !firebase.database) return;
+            var safeKey = profileData.email.replace(/[.#$\[\]]/g, '_');
+            var db = firebase.database();
+            var seekerData = {
+                name: profileData.name,
+                title: profileData.title,
+                location: profileData.location,
+                email: profileData.email,
+                linkedin: profileData.linkedin,
+                github: profileData.github,
+                bio: profileData.bio,
+                availability: profileData.availability,
+                expectedSalary: profileData.expectedSalary,
+                skills: userSkills,
+                role: 'Job Seeker',
+                profileUpdatedAt: new Date().toISOString()
+            };
+            db.ref('users/jobseekers/' + safeKey).update(seekerData)
+                .then(function() { console.log('Jobseeker profile saved to Firebase'); })
+                .catch(function(e) { console.error('Firebase save error:', e); });
         }
 
         // Detailed Experience & Projects (LinkedIn Style)
@@ -92,49 +119,35 @@
             { id: 3, title: 'Mobile Developer', company: 'HealthBuddy', founder: 'Karim Ahmed', description: 'Create mobile apps.', requiredSkills: ['Flutter', 'Firebase'], salary: '$1,800/month', type: 'Full-time', location: 'Remote', matchScore: 20 }
         ];
 
-        // Founders List (Data for the new section)
-        const foundersList = [
-            { 
-                id: 1, 
-                name: 'Rahim Uddin', 
-                startup: 'Krishi-AI', 
-                industry: 'AgriTech', 
-                bio: 'Serial entrepreneur building AI solutions to help local farmers increase yield and detect diseases early.', 
-                requirements: ['Frontend React Developer', 'AI/ML Engineer'], 
-                linkedin: 'https://linkedin.com/in/rahim', 
-                email: 'rahim@krishi-ai.com' 
-            },
-            { 
-                id: 2, 
-                name: 'Sadia Rahman', 
-                startup: 'FinSheba', 
-                industry: 'FinTech', 
-                bio: 'Ex-banker now creating accessible financial tools for the unbanked population in rural areas.', 
-                requirements: ['Node.js Backend Engineer', 'Security Expert'], 
-                linkedin: 'https://linkedin.com/in/sadia', 
-                email: 'sadia@finsheba.com' 
-            },
-            { 
-                id: 3, 
-                name: 'Karim Ahmed', 
-                startup: 'HealthBuddy', 
-                industry: 'HealthTech', 
-                bio: 'Doctor turned founder. My vision is to provide 24/7 telemedicine access to every citizen via their smartphone.', 
-                requirements: ['Mobile Developer (Flutter)', 'UI/UX Designer'], 
-                linkedin: 'https://linkedin.com/in/karim', 
-                email: 'karim@healthbuddy.com' 
-            },
-            { 
-                id: 4, 
-                name: 'Nadia Islam', 
-                startup: 'EduBridge', 
-                industry: 'EdTech', 
-                bio: 'Building offline-first e-learning platforms to bridge the education gap in remote areas.', 
-                requirements: ['Content Creator', 'React Native Developer'], 
-                linkedin: 'https://linkedin.com/in/nadia', 
-                email: 'nadia@edubridge.com' 
-            }
-        ];
+        // Founders List — will be loaded from Firebase
+        let foundersList = [];
+
+        // --- FETCH REAL FOUNDERS FROM FIREBASE ---
+        function fetchFoundersFromFirebase() {
+            if (typeof firebase === 'undefined' || !firebase.database) return Promise.resolve();
+            return firebase.database().ref('users/founders').once('value').then(function(snap) {
+                var data = snap.val();
+                foundersList = [];
+                if (data) {
+                    var idx = 1;
+                    Object.keys(data).forEach(function(key) {
+                        var f = data[key];
+                        foundersList.push({
+                            id: idx,
+                            name: f.name || 'Unknown',
+                            startup: f.startupName || f.name + "'s Startup",
+                            industry: f.industry || 'General',
+                            bio: f.bio || 'Founder on Foundera platform.',
+                            requirements: f.skills ? f.skills.split(',').map(function(s) { return s.trim(); }) : ['Team Members'],
+                            linkedin: f.linkedin || '',
+                            email: f.email || ''
+                        });
+                        idx++;
+                    });
+                }
+                console.log('JobSeeker: Loaded ' + foundersList.length + ' founders from Firebase');
+            });
+        }
 
         // User specific state
         let savedJobIds = [2]; 
@@ -687,8 +700,17 @@
 
         // New Founders Section
         function renderFounders() {
+            if (foundersList.length === 0) {
+                return `
+                    <div class="text-center py-20 bg-gray-800/40 rounded-2xl border border-gray-700/50">
+                        <i data-lucide="users" class="w-16 h-16 text-gray-500 mx-auto mb-4"></i>
+                        <h2 class="text-2xl font-bold text-white mb-2">No Founders Found Yet</h2>
+                        <p class="text-gray-400">When founders create their profiles on Foundera, they will appear here.</p>
+                    </div>`;
+            }
             return `
                 <div class="space-y-6">
+                    <p class="text-sm text-gray-400"><i data-lucide="database" class="w-4 h-4 inline mr-1"></i> Showing <strong class="text-white">${foundersList.length}</strong> real founders from database</p>
                     <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 shadow-lg mb-6">
                         <div class="flex flex-col md:flex-row gap-4">
                             <div class="flex-1 relative">
@@ -957,8 +979,12 @@
         const appBadge = document.getElementById('app-count-badge');
         if (appBadge) appBadge.textContent = userApplications.length;
         
-        // Ekhon login/page load korar sathe sathe 'overview' tab e jabe
-        setTab('overview');
+        // Load real founders data from Firebase
+        fetchFoundersFromFirebase().then(function() {
+            setTab('overview');
+        }).catch(function() {
+            setTab('overview');
+        });
         
         lucide.createIcons();
 

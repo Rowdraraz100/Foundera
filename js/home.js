@@ -14,15 +14,8 @@ var state = {
     founderTab: 'ideas'
 };
 
-var mockSeekers = [
-    { id: 1, name: 'Anik Hasan', role: 'Full Stack Developer', skills: ['React', 'Node.js', 'MongoDB'], experience: '3 Years' },
-    { id: 2, name: 'Nusrat Jahan', role: 'UI/UX Designer', skills: ['Figma', 'UI/UX', 'Research'], experience: '2 Years' }
-];
-
-var mockInvestors = [
-    { id: 1, name: 'Venture BD', focus: ['AgriTech', 'EdTech'], ticketSize: '$10k - $100k' },
-    { id: 2, name: 'Global Seed Fund', focus: ['FinTech', 'HealthTech', 'AI'], ticketSize: '$50k - $500k' }
-];
+var mockSeekers = [];
+var mockInvestors = [];
 
 /* --- GOOGLE SIGN-IN --- */
 var GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
@@ -212,7 +205,25 @@ function handleAuth(event, type) {
                     if (foundRole === 'Founder')    { localStorage.setItem('founderName', foundUser.name);  localStorage.setItem('founderEmail', foundUser.email); window.location.href = 'founder.html'; }
                     else if (foundRole === 'Job Seeker') { localStorage.setItem('seekerName', foundUser.name); localStorage.setItem('seekerEmail', foundUser.email); window.location.href = 'jobseeker.html'; }
                     else if (foundRole === 'Investor')   { localStorage.setItem('investorName', foundUser.name); localStorage.setItem('investorEmail', foundUser.email); window.location.href = 'investor.html'; }
-                } else { alert('Account found but no role assigned.'); if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Sign In'; } }
+                } else {
+                    // User verified email but data not yet in Firebase — check pendingSignup
+                    var pending = localStorage.getItem('pendingSignup');
+                    if (pending) {
+                        var pData = JSON.parse(pending);
+                        if (pData.email === email) {
+                            saveUserToFirebase({ name: pData.name, email: pData.email, role: pData.role, picture: pData.picture || '', signupMethod: pData.signupMethod || 'email', emailVerified: true }).then(function () {
+                                localStorage.removeItem('pendingSignup');
+                                state.currentUser = { name: pData.name, email: pData.email, role: pData.role };
+                                if (pData.role === 'Founder')    { localStorage.setItem('founderName', pData.name);  localStorage.setItem('founderEmail', pData.email); window.location.href = 'founder.html'; }
+                                else if (pData.role === 'Job Seeker') { localStorage.setItem('seekerName', pData.name); localStorage.setItem('seekerEmail', pData.email); window.location.href = 'jobseeker.html'; }
+                                else if (pData.role === 'Investor')   { localStorage.setItem('investorName', pData.name); localStorage.setItem('investorEmail', pData.email); window.location.href = 'investor.html'; }
+                            });
+                            return;
+                        }
+                    }
+                    alert('Account found but no role assigned.');
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Sign In'; }
+                }
             });
         }).catch(function (e) {
             var msg = 'Login failed. ';
@@ -227,16 +238,16 @@ function handleAuth(event, type) {
         return;
     }
 
-    // SIGNUP
+    // SIGNUP — data will NOT be saved to Firebase until email is verified
     firebase.auth().createUserWithEmailAndPassword(email, password).then(function (cred) {
         var user = cred.user;
         user.updateProfile({ displayName: name }).catch(function () {});
         user.sendEmailVerification().catch(function (err) { console.error('Verification email error:', err); });
-        return saveUserToFirebase({ name: name, email: email, role: role, picture: '', signupMethod: 'email', emailVerified: false }).then(function () {
-            firebase.auth().signOut().catch(function () {});
-            state.currentUser = null;
-            showVerificationPopup(email);
-        });
+        // Store signup info temporarily in localStorage so we can save to Firebase after verification
+        localStorage.setItem('pendingSignup', JSON.stringify({ name: name, email: email, role: role, picture: '', signupMethod: 'email' }));
+        firebase.auth().signOut().catch(function () {});
+        state.currentUser = null;
+        showVerificationPopup(email);
     }).catch(function (e) {
         var msg = 'Registration failed. ';
         if (e.code === 'auth/email-already-in-use') msg += 'Email already registered. Please login.';
