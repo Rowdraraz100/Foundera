@@ -1,0 +1,67 @@
+/* ============================================
+   FOUNDERA — Founder Dashboard Styles
+   ============================================ */
+
+.sidebar-link { transition: all 0.3s ease; }
+.sidebar-link:hover { background: rgba(59, 130, 246, 0.1); transform: translateX(5px); }
+.sidebar-link.active {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), transparent);
+    border-left: 3px solid #3b82f6;
+}
+
+.card-hover { transition: all 0.3s ease; }
+.card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(59, 130, 246, 0.15); }
+
+.founder-btn { background: linear-gradient(135deg, #3b82f6, #6366f1); }
+.founder-btn:hover { background: linear-gradient(135deg, #2563eb, #4f46e5); transform: scale(1.02); }
+
+.loader {
+    border-top-color: #3b82f6;
+    animation: spinner 1.5s linear infinite;
+}
+@keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* Highlight CTA Button */
+@keyframes breathing-glow {
+    0%   { box-shadow: 0 0 15px 0 rgba(139, 92, 246, 0.4); transform: scale(1); }
+    50%  { box-shadow: 0 0 25px 5px rgba(139, 92, 246, 0.7); transform: scale(1.02); }
+    100% { box-shadow: 0 0 15px 0 rgba(139, 92, 246, 0.4); transform: scale(1); }
+}
+.btn-highlight {
+    background: linear-gradient(135deg, #2563eb, #7c3aed, #db2777);
+    background-size: 200% auto;
+    animation: breathing-glow 2.5s infinite alternate;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+    border: none;
+}
+.btn-highlight::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: rotate(45deg) translateY(-100%);
+    transition: transform 0.6s ease;
+}
+.btn-highlight:hover {
+    background-position: right center;
+    animation-play-state: paused;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.8);
+}
+.btn-highlight:hover::after {
+    transform: rotate(45deg) translateY(100%);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main-content { margin-left: 0 !important; }
+}
+@media (min-width: 769px) {
+    .mobile-menu-btn { display: none !important; }
+    .sidebar-overlay { display: none !important; }
+}

@@ -4,16 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About Us - Foundera</title>
+    <link rel="icon" type="image/jpeg" href="images/founderaLogo.jpeg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/common.css">
 </head>
 <body class="bg-[#1a0b2e] text-gray-900">
+
+    <!-- Preloader -->
+    <div id="foundera-preloader">
+        <div class="preloader-glow"></div>
+        <img src="images/founderaLogo.jpeg" alt="Foundera" class="preloader-logo">
+        <div class="preloader-text">Foundera</div>
+        <div class="preloader-bar-container"><div class="preloader-bar"></div></div>
+    </div>
 
     <!-- Navigation -->
     <nav class="bg-[#1a0b2e] sticky top-0 z-50 border-b border-white/10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <a href="index.html" class="flex items-center cursor-pointer">
+            <a href="index.html" class="flex items-center cursor-pointer gap-2">
+                <img src="images/founderaLogo.jpeg" alt="Foundera" class="w-9 h-9 rounded-lg object-cover">
                 <span class="text-2xl font-bold text-white tracking-tight">Foundera</span>
             </a>
             <div class="hidden md:flex items-center space-x-6">
@@ -21,9 +31,12 @@
                 <a href="success-stories.html" class="text-gray-300 hover:text-white font-medium text-sm transition-colors">Success Stories</a>
                 <a href="about-us.html" class="text-white font-medium text-sm transition-colors">About Us</a>
             </div>
-            <div class="flex items-center space-x-3">
-                <a href="index.html" class="text-gray-300 hover:text-white font-medium px-3 py-2 text-sm transition-colors">Log in</a>
-                <a href="index.html" class="bg-[#7c3aed] hover:bg-[#8b5cf6] text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors">Sign up for free</a>
+            <button class="md:hidden flex flex-col justify-center items-center w-10 h-10 rounded-lg bg-white/10 border border-white/20" onclick="toggleMobileNav()">
+                <span class="block w-5 h-0.5 bg-white mb-1"></span><span class="block w-5 h-0.5 bg-white mb-1"></span><span class="block w-5 h-0.5 bg-white"></span>
+            </button>
+            <div class="hidden md:flex items-center space-x-3">
+                <a href="index.html#login" class="text-gray-300 hover:text-white font-medium px-3 py-2 text-sm transition-colors">Log in</a>
+                <a href="index.html#signup" class="bg-[#7c3aed] hover:bg-[#8b5cf6] text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors">Sign up for free</a>
             </div>
         </div>
     </nav>
@@ -294,7 +307,8 @@
     <!-- Footer -->
     <footer class="bg-gray-900 text-gray-400 py-12 px-6">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
-            <div class="flex items-center mb-4 md:mb-0">
+            <div class="flex items-center mb-4 md:mb-0 gap-2">
+                <img src="images/founderaLogo.jpeg" alt="Foundera" class="w-9 h-9 rounded-lg object-cover">
                 <span class="text-2xl font-bold text-white tracking-tight">Foundera</span>
             </div>
             <div class="flex items-center space-x-6 text-sm">
@@ -306,8 +320,8 @@
         </div>
     </footer>
 
-    <script>
-        lucide.createIcons();
-    </script>
+    <script>lucide.createIcons();</script>
+    <script src="js/navbar.js"></script>
+    <script src="js/preloader.js"></script>
 </body>
 </html>

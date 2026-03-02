@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Foundera - Startup Ecosystem</title>
+    <link rel="icon" type="image/jpeg" href="images/founderaLogo.jpeg">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -11,7 +12,7 @@
     <!-- Google Sign-In -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/common.css">
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -38,10 +39,19 @@
 </head>
 <body class="bg-[#1a0b2e] text-gray-900">
 
+    <!-- Preloader -->
+    <div id="foundera-preloader">
+        <div class="preloader-glow"></div>
+        <img src="images/founderaLogo.jpeg" alt="Foundera" class="preloader-logo">
+        <div class="preloader-text">Foundera</div>
+        <div class="preloader-bar-container"><div class="preloader-bar"></div></div>
+    </div>
+
     <div id="navbar-root"></div>
     <div id="app-root"></div>
     <div id="footer-root"></div>
 
-    <script src="script.js"></script>
+    <script src="js/home.js"></script>
+    <script src="js/preloader.js"></script>
 </body>
 </html>
