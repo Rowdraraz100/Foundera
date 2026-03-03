@@ -17,7 +17,9 @@ var state = {
 var mockSeekers = [];
 var mockInvestors = [];
 
-/* --- GOOGLE SIGN-IN --- */
+/* --- AUTH CONFIG --- */
+// Gmail-only validation
+var GMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@gmail\.com$/i;
 var GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
 
 function initGoogleSignIn() {
@@ -48,7 +50,7 @@ function signInWithGoogle() {
                 client.requestAccessToken();
             }
         });
-    } else { alert('Google Sign-In is loading. Please try again in a moment.'); }
+    } else { showToast('Google Sign-In is loading. Please try again.', 'info'); }
 }
 
 /* --- ROLE SELECTION MODAL --- */
@@ -97,64 +99,98 @@ function saveUserToFirebase(userData) {
         .then(function () { console.log('User saved to DB'); })
         .catch(function (e) {
             console.error('DB error:', e);
-            if (e.code === 'PERMISSION_DENIED') alert('Database write blocked. Please update Firebase rules.');
+            if (e.code === 'PERMISSION_DENIED') showToast('Database write blocked. Please update Firebase rules.', 'error');
         });
 }
 
 function completeGoogleSignUp(role) {
     var g = state.googleUser;
     state.currentUser = { name: g.name, email: g.email, role: role, picture: g.picture };
-    saveUserToFirebase({ name: g.name, email: g.email, role: role, picture: g.picture, signupMethod: 'google' }).then(function () {
+    saveUserToFirebase({ name: g.name, email: g.email, role: role, picture: g.picture, signupMethod: 'google', emailVerified: true }).then(function () {
         closeRoleModal();
-        if (role === 'Founder')    { localStorage.setItem('founderName', g.name); localStorage.setItem('founderPicture', g.picture || ''); window.location.href = 'founder.html'; }
-        if (role === 'Job Seeker') { localStorage.setItem('seekerName', g.name);  localStorage.setItem('seekerPicture', g.picture || '');  window.location.href = 'jobseeker.html'; }
-        if (role === 'Investor')   { localStorage.setItem('investorName', g.name); localStorage.setItem('investorPicture', g.picture || ''); window.location.href = 'investor.html'; }
-    }).catch(function () { closeRoleModal(); alert('Failed to save data. Please check database rules.'); });
+        redirectToDashboard(g.name, g.email, role);
+    }).catch(function () { closeRoleModal(); showToast('Failed to save data. Please check database rules.', 'error'); });
 }
 
-/* --- EMAIL VERIFICATION --- */
-function showVerificationPopup(email) {
-    var existing = document.getElementById('verification-popup');
-    if (existing) existing.remove();
-    var popup = document.createElement('div');
-    popup.id = 'verification-popup';
-    popup.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100]';
-    popup.innerHTML =
-        '<div class="bg-[#1E1B4B] rounded-3xl p-8 max-w-md w-full mx-4 border border-white/10 shadow-2xl animate-text-spring text-center">' +
-            '<div class="w-20 h-20 bg-gradient-to-br from-purple-500 to-violet-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-500/30">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>' +
-            '</div>' +
-            '<h2 class="text-2xl font-bold text-white mb-3">Verify Your Email</h2>' +
-            '<p class="text-gray-300 mb-2">We\'ve sent a verification link to:</p>' +
-            '<p class="text-purple-400 font-semibold mb-4">' + email + '</p>' +
-            '<div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6 text-left">' +
-                '<p class="text-yellow-300 font-semibold text-sm mb-1">Check your Spam / Junk folder!</p>' +
-                '<p class="text-yellow-200/70 text-xs">The verification email may land in your spam folder.</p>' +
-            '</div>' +
-            '<p class="text-gray-400 text-sm mb-6">Click the link in the email, then come back and log in.</p>' +
-            '<button onclick="resendVerificationEmail()" id="resend-verification-btn" class="w-full bg-white/10 hover:bg-white/20 text-white font-medium py-3 rounded-xl transition-all border border-white/10 mb-3">Resend Verification Email</button>' +
-            '<button onclick="closeVerificationPopup()" class="w-full bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-purple-500/20">Go to Login</button>' +
-        '</div>';
-    document.body.appendChild(popup);
+
+
+/* --- TOAST NOTIFICATIONS --- */
+function showToast(message, type) {
+    type = type || 'info';
+    var container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'fixed top-4 right-4 z-[200] flex flex-col gap-3 pointer-events-none';
+        container.style.maxWidth = '420px';
+        document.body.appendChild(container);
+    }
+    var colors = { success: 'bg-green-500/15 border-green-500/30 text-green-300', error: 'bg-red-500/15 border-red-500/30 text-red-300', info: 'bg-blue-500/15 border-blue-500/30 text-blue-300', warning: 'bg-yellow-500/15 border-yellow-500/30 text-yellow-300' };
+    var icons = {
+        success: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+        error: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+        info: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+        warning: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+    };
+    var toast = document.createElement('div');
+    toast.className = 'pointer-events-auto backdrop-blur-xl border rounded-xl px-4 py-3 flex items-center gap-3 shadow-2xl min-w-[280px] ' + (colors[type] || colors.info) + ' animate-toast-in';
+    toast.innerHTML = (icons[type] || icons.info) + '<span class="text-sm font-medium flex-1">' + message + '</span>';
+    container.appendChild(toast);
+    setTimeout(function() {
+        toast.classList.add('animate-toast-out');
+        setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
+    }, 5000);
 }
 
-function closeVerificationPopup() {
-    var p = document.getElementById('verification-popup');
-    if (p) p.remove();
-    navigateTo('login');
+/* --- FORM HELPERS --- */
+function validateEmailField(input, isSignup) {
+    var icon = document.getElementById('email-check-icon');
+    var hint = document.getElementById('email-hint');
+    if (!input.value) { if (icon) icon.innerHTML = ''; if (hint) { hint.textContent = isSignup ? 'Only @gmail.com emails are accepted' : ''; hint.className = 'text-xs text-gray-400 mt-1'; } input.classList.remove('border-red-400', 'border-green-400'); input.classList.add('border-gray-300'); return; }
+    if (isSignup && !GMAIL_REGEX.test(input.value)) {
+        if (icon) icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+        if (hint) { hint.textContent = 'Only @gmail.com emails are accepted'; hint.className = 'text-xs text-red-500 mt-1'; }
+        input.classList.add('border-red-400'); input.classList.remove('border-green-400', 'border-gray-300');
+    } else {
+        if (icon) icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+        if (hint) { hint.textContent = 'Valid Gmail address'; hint.className = 'text-xs text-green-600 mt-1'; }
+        input.classList.add('border-green-400'); input.classList.remove('border-red-400', 'border-gray-300');
+    }
 }
 
-function resendVerificationEmail() {
-    var btn = document.getElementById('resend-verification-btn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
-    var user = firebase.auth().currentUser;
-    if (user) {
-        user.sendEmailVerification().then(function () {
-            if (btn) { btn.textContent = '✓ Email Sent! Check your inbox'; btn.classList.add('bg-green-500/20', 'border-green-500/30'); setTimeout(function () { btn.disabled = false; btn.textContent = 'Resend Verification Email'; btn.classList.remove('bg-green-500/20', 'border-green-500/30'); }, 30000); }
-        }).catch(function (e) {
-            if (btn) { btn.disabled = false; btn.textContent = e.code === 'auth/too-many-requests' ? 'Too many attempts. Try later.' : 'Failed. Try again.'; setTimeout(function () { btn.textContent = 'Resend Verification Email'; }, 5000); }
-        });
-    } else if (btn) { btn.disabled = false; btn.textContent = 'Please register again to resend'; setTimeout(function () { btn.textContent = 'Resend Verification Email'; }, 5000); }
+function updatePasswordStrength(val) {
+    var container = document.getElementById('password-strength');
+    var bar = document.getElementById('strength-bar');
+    var text = document.getElementById('strength-text');
+    if (!container || !bar || !text) return;
+    if (!val) { container.classList.add('hidden'); return; }
+    container.classList.remove('hidden');
+    var score = 0;
+    if (val.length >= 6) score++;
+    if (val.length >= 8) score++;
+    if (/[a-z]/.test(val) && /[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^a-zA-Z0-9]/.test(val)) score++;
+    var levels = [
+        { w: '20%', c: '#ef4444', t: 'Very Weak' },
+        { w: '40%', c: '#f97316', t: 'Weak' },
+        { w: '60%', c: '#eab308', t: 'Fair' },
+        { w: '80%', c: '#22c55e', t: 'Strong' },
+        { w: '100%', c: '#10b981', t: 'Very Strong' }
+    ];
+    var level = levels[Math.min(score, levels.length) - 1] || levels[0];
+    bar.style.width = level.w; bar.style.backgroundColor = level.c;
+    text.textContent = level.t; text.style.color = level.c;
+}
+
+function togglePasswordVisibility(btn) {
+    var input = btn.parentElement.querySelector('input');
+    if (!input) return;
+    var isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    btn.innerHTML = isHidden
+        ? '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+        : '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
 }
 
 /* --- NAVIGATION --- */
@@ -166,6 +202,14 @@ function navigateTo(screen) {
 
 function handleLogout() {
     state.currentUser = null;
+    firebase.auth().signOut().catch(function(){});
+    localStorage.removeItem('founderName');
+    localStorage.removeItem('founderEmail');
+    localStorage.removeItem('seekerName');
+    localStorage.removeItem('seekerEmail');
+    localStorage.removeItem('investorName');
+    localStorage.removeItem('investorEmail');
+    localStorage.removeItem('pendingSignup');
     navigateTo('home');
 }
 
@@ -174,21 +218,163 @@ function setFounderTab(tab) {
     render();
 }
 
+/* --- ROLE-BASED REDIRECT HELPER --- */
+function redirectToDashboard(name, email, role) {
+    if (role === 'Founder') {
+        localStorage.setItem('founderName', name);
+        localStorage.setItem('founderEmail', email);
+        setTimeout(function() { window.location.href = 'founder.html'; }, 400);
+    } else if (role === 'Job Seeker') {
+        localStorage.setItem('seekerName', name);
+        localStorage.setItem('seekerEmail', email);
+        setTimeout(function() { window.location.href = 'jobseeker.html'; }, 400);
+    } else if (role === 'Investor') {
+        localStorage.setItem('investorName', name);
+        localStorage.setItem('investorEmail', email);
+        setTimeout(function() { window.location.href = 'investor.html'; }, 400);
+    }
+}
+
+/* --- EMAIL VERIFICATION SCREEN --- */
+var verificationPollTimer = null;
+
+function showVerificationScreen(user, name, email, role) {
+    state.currentScreen = 'verify';
+    var app = document.getElementById('app-root');
+    var nav = document.getElementById('navbar-root');
+    var footer = document.getElementById('footer-root');
+    if (nav) nav.innerHTML = '';
+    if (footer) footer.innerHTML = '';
+    app.innerHTML =
+        '<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1a0b2e] via-[#1E1B4B] to-[#1a0b2e] px-4">' +
+            '<div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 max-w-lg w-full text-center shadow-2xl">' +
+                '<div class="w-20 h-20 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-500/30 animate-bounce-slow">' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>' +
+                '</div>' +
+                '<h2 class="text-3xl font-bold text-white mb-3">Verify Your Email</h2>' +
+                '<p class="text-gray-400 mb-2">We\'ve sent a verification link to:</p>' +
+                '<p class="text-purple-400 font-semibold text-lg mb-6">' + email + '</p>' +
+                '<div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">' +
+                    '<div class="flex items-center gap-3 text-left">' +
+                        '<div id="verify-spinner" class="w-8 h-8 border-3 border-purple-500/30 border-t-purple-500 rounded-full animate-spin flex-shrink-0"></div>' +
+                        '<div>' +
+                            '<p id="verify-status-text" class="text-white font-medium text-sm">Waiting for verification...</p>' +
+                            '<p class="text-gray-500 text-xs mt-0.5">Click the link in your email, then this page will update automatically</p>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="space-y-3">' +
+                    '<button onclick="resendVerificationEmail()" id="resend-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl transition-all shadow-lg hover:shadow-purple-500/20">Resend Verification Email</button>' +
+                    '<button onclick="cancelVerification()" class="w-full border border-white/20 text-gray-400 hover:text-white hover:border-white/40 font-medium py-3 rounded-xl transition-all">Back to Sign Up</button>' +
+                '</div>' +
+                '<p class="text-gray-500 text-xs mt-6">Check your spam/junk folder if you don\'t see the email</p>' +
+            '</div>' +
+        '</div>';
+
+    // Store pending signup data
+    localStorage.setItem('pendingSignup', JSON.stringify({ name: name, email: email, role: role }));
+
+    // Start polling for verification
+    startVerificationPolling(user, name, email, role);
+}
+
+function startVerificationPolling(user, name, email, role) {
+    if (verificationPollTimer) clearInterval(verificationPollTimer);
+    verificationPollTimer = setInterval(function() {
+        user.reload().then(function() {
+            if (user.emailVerified) {
+                clearInterval(verificationPollTimer);
+                verificationPollTimer = null;
+                // Update UI to show verified
+                var statusText = document.getElementById('verify-status-text');
+                var spinner = document.getElementById('verify-spinner');
+                if (statusText) statusText.textContent = 'Email verified! Redirecting...';
+                if (statusText) statusText.className = 'text-green-400 font-medium text-sm';
+                if (spinner) spinner.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+                if (spinner) spinner.className = 'flex-shrink-0';
+                showToast('Email verified successfully!', 'success');
+                // Save user to Firebase DB and redirect
+                saveUserToFirebase({ name: name, email: email, role: role, picture: '', signupMethod: 'email', emailVerified: true }).then(function() {
+                    localStorage.removeItem('pendingSignup');
+                    state.currentUser = { name: name, email: email, role: role };
+                    redirectToDashboard(name, email, role);
+                });
+            }
+        }).catch(function() {
+            // Token may have expired, try to get fresh token
+            console.log('Verification poll: reload failed, will retry...');
+        });
+    }, 3000); // Check every 3 seconds
+}
+
+function resendVerificationEmail() {
+    var user = firebase.auth().currentUser;
+    var btn = document.getElementById('resend-btn');
+    if (!user) { showToast('Session expired. Please sign up again.', 'error'); return; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+    user.sendEmailVerification().then(function() {
+        showToast('Verification email sent! Check your inbox.', 'success');
+        if (btn) { btn.disabled = false; btn.textContent = 'Resend Verification Email'; }
+    }).catch(function(e) {
+        if (e.code === 'auth/too-many-requests') {
+            showToast('Too many requests. Please wait a moment before trying again.', 'warning');
+        } else {
+            showToast('Failed to send email: ' + e.message, 'error');
+        }
+        if (btn) { btn.disabled = false; btn.textContent = 'Resend Verification Email'; }
+    });
+}
+
+function cancelVerification() {
+    if (verificationPollTimer) { clearInterval(verificationPollTimer); verificationPollTimer = null; }
+    // Sign out the unverified user
+    firebase.auth().signOut().catch(function(){});
+    localStorage.removeItem('pendingSignup');
+    navigateTo('signup');
+}
+
 /* --- AUTH HANDLER --- */
 function handleAuth(event, type) {
     event.preventDefault();
     var fd = new FormData(event.target);
     var email = fd.get('email'), password = fd.get('password');
     var firstName = fd.get('firstName') || '', lastName = fd.get('lastName') || '';
-    var name = firstName && lastName ? firstName + ' ' + lastName : (fd.get('name') || 'Demo User');
+    var name = firstName && lastName ? firstName + ' ' + lastName : (fd.get('name') || 'User');
     var role = fd.get('role') || 'Founder';
     var submitBtn = event.target.querySelector('button[type="submit"]');
-    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = type === 'login' ? 'Logging in...' : 'Creating account...'; }
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = type === 'login' ? 'Signing in...' : 'Creating account...'; }
 
     if (type === 'login') {
         firebase.auth().signInWithEmailAndPassword(email, password).then(function (cred) {
             var user = cred.user;
-            if (!user.emailVerified) { showVerificationPopup(email); if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Sign In'; } return; }
+
+            // CHECK EMAIL VERIFICATION
+            if (!user.emailVerified) {
+                // User hasn't verified email yet — show verification screen
+                var pending = localStorage.getItem('pendingSignup');
+                var pendName = name, pendRole = role;
+                if (pending) {
+                    try { var pData = JSON.parse(pending); if (pData.email === email) { pendName = pData.name; pendRole = pData.role; } } catch(e) {}
+                }
+                // Also check DB for user info
+                var safeKey = email.replace(/[.#$\[\]]/g, '_');
+                firebase.database().ref('users').once('value').then(function(snap) {
+                    var data = snap.val();
+                    if (data) {
+                        if (data.founders && data.founders[safeKey]) { pendName = data.founders[safeKey].name; pendRole = 'Founder'; }
+                        else if (data.jobseekers && data.jobseekers[safeKey]) { pendName = data.jobseekers[safeKey].name; pendRole = 'Job Seeker'; }
+                        else if (data.investors && data.investors[safeKey]) { pendName = data.investors[safeKey].name; pendRole = 'Investor'; }
+                    }
+                    showToast('Please verify your email before logging in. Check your inbox!', 'warning');
+                    // Resend verification email
+                    user.sendEmailVerification().catch(function(){});
+                    showVerificationScreen(user, pendName, email, pendRole);
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Sign In'; }
+                });
+                return;
+            }
+
+            // Email is verified — proceed with login
             var safeKey = email.replace(/[.#$\[\]]/g, '_');
             var db = firebase.database();
             db.ref('users').once('value').then(function (snap) {
@@ -199,30 +385,23 @@ function handleAuth(event, type) {
                     if (data.investors && data.investors[safeKey])  { foundUser = data.investors[safeKey];  foundRole = 'Investor'; }
                 }
                 if (foundUser) {
+                    // User found — login and redirect
                     var rf = foundRole === 'Founder' ? 'founders' : foundRole === 'Job Seeker' ? 'jobseekers' : 'investors';
                     db.ref('users/' + rf + '/' + safeKey).update({ lastLogin: new Date().toISOString(), emailVerified: true });
                     state.currentUser = { name: foundUser.name, email: foundUser.email, role: foundRole };
-                    if (foundRole === 'Founder')    { localStorage.setItem('founderName', foundUser.name);  localStorage.setItem('founderEmail', foundUser.email); window.location.href = 'founder.html'; }
-                    else if (foundRole === 'Job Seeker') { localStorage.setItem('seekerName', foundUser.name); localStorage.setItem('seekerEmail', foundUser.email); window.location.href = 'jobseeker.html'; }
-                    else if (foundRole === 'Investor')   { localStorage.setItem('investorName', foundUser.name); localStorage.setItem('investorEmail', foundUser.email); window.location.href = 'investor.html'; }
+                    showToast('Welcome back, ' + foundUser.name + '!', 'success');
+                    redirectToDashboard(foundUser.name, foundUser.email, foundRole);
                 } else {
-                    // User verified email but data not yet in Firebase — check pendingSignup
+                    // User in Auth but not in DB — save and redirect
                     var pending = localStorage.getItem('pendingSignup');
-                    if (pending) {
-                        var pData = JSON.parse(pending);
-                        if (pData.email === email) {
-                            saveUserToFirebase({ name: pData.name, email: pData.email, role: pData.role, picture: pData.picture || '', signupMethod: pData.signupMethod || 'email', emailVerified: true }).then(function () {
-                                localStorage.removeItem('pendingSignup');
-                                state.currentUser = { name: pData.name, email: pData.email, role: pData.role };
-                                if (pData.role === 'Founder')    { localStorage.setItem('founderName', pData.name);  localStorage.setItem('founderEmail', pData.email); window.location.href = 'founder.html'; }
-                                else if (pData.role === 'Job Seeker') { localStorage.setItem('seekerName', pData.name); localStorage.setItem('seekerEmail', pData.email); window.location.href = 'jobseeker.html'; }
-                                else if (pData.role === 'Investor')   { localStorage.setItem('investorName', pData.name); localStorage.setItem('investorEmail', pData.email); window.location.href = 'investor.html'; }
-                            });
-                            return;
-                        }
-                    }
-                    alert('Account found but no role assigned.');
-                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Sign In'; }
+                    var pendName = name, pendRole = role;
+                    if (pending) { try { var pData = JSON.parse(pending); if (pData.email === email) { pendName = pData.name; pendRole = pData.role; } } catch(e) {} }
+                    saveUserToFirebase({ name: pendName, email: email, role: pendRole, picture: '', signupMethod: 'email', emailVerified: true }).then(function() {
+                        localStorage.removeItem('pendingSignup');
+                        state.currentUser = { name: pendName, email: email, role: pendRole };
+                        showToast('Welcome, ' + pendName + '!', 'success');
+                        redirectToDashboard(pendName, email, pendRole);
+                    });
                 }
             });
         }).catch(function (e) {
@@ -232,30 +411,42 @@ function handleAuth(event, type) {
             else if (e.code === 'auth/invalid-email') msg += 'Invalid email format.';
             else if (e.code === 'auth/too-many-requests') msg += 'Too many attempts. Try later.';
             else msg += e.message;
-            alert(msg);
+            showToast(msg, 'error');
             if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Sign In'; }
         });
         return;
     }
 
-    // SIGNUP — data will NOT be saved to Firebase until email is verified
+    // SIGNUP — Validate @gmail.com
+    if (!GMAIL_REGEX.test(email)) {
+        showToast('Please use a valid @gmail.com email address.', 'error');
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Create Account'; }
+        return;
+    }
+
     firebase.auth().createUserWithEmailAndPassword(email, password).then(function (cred) {
         var user = cred.user;
         user.updateProfile({ displayName: name }).catch(function () {});
-        user.sendEmailVerification().catch(function (err) { console.error('Verification email error:', err); });
-        // Store signup info temporarily in localStorage so we can save to Firebase after verification
-        localStorage.setItem('pendingSignup', JSON.stringify({ name: name, email: email, role: role, picture: '', signupMethod: 'email' }));
-        firebase.auth().signOut().catch(function () {});
-        state.currentUser = null;
-        showVerificationPopup(email);
+
+        // Send email verification
+        user.sendEmailVerification().then(function() {
+            showToast('Verification email sent! Check your inbox.', 'success');
+            // Show verification waiting screen
+            showVerificationScreen(user, name, email, role);
+        }).catch(function(e) {
+            console.error('Failed to send verification email:', e);
+            // Still show verification screen — user can resend
+            showToast('Account created! Please verify your email.', 'info');
+            showVerificationScreen(user, name, email, role);
+        });
     }).catch(function (e) {
         var msg = 'Registration failed. ';
-        if (e.code === 'auth/email-already-in-use') msg += 'Email already registered. Please login.';
-        else if (e.code === 'auth/weak-password') msg += 'Password should be at least 6 characters.';
+        if (e.code === 'auth/email-already-in-use') msg += 'Email already registered. Please login instead.';
+        else if (e.code === 'auth/weak-password') msg += 'Password must be at least 6 characters.';
         else if (e.code === 'auth/invalid-email') msg += 'Invalid email format.';
         else msg += e.message;
-        alert(msg);
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Register'; }
+        showToast(msg, 'error');
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Create Account'; }
     });
 }
 
@@ -560,13 +751,16 @@ function AuthView(type) {
         /* Right form panel */
         '<div class="w-full lg:w-1/2 bg-white flex items-center justify-center p-6 md:p-12">' +
             '<div class="w-full max-w-md">' +
-                '<div class="text-center mb-8"><h2 class="text-3xl font-bold text-gray-900 mb-2">' + (isLogin ? 'Welcome Back' : 'Sign up for an account') + '</h2></div>' +
-                '<form onsubmit="handleAuth(event, \'' + type + '\')" class="space-y-4">' +
-                    (!isLogin ? '<div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-1">First Name</label><input name="firstName" required placeholder="First Name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label><input name="lastName" required placeholder="Last Name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none"></div></div>' : '') +
-                    '<div><label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label><input name="email" required type="email" placeholder="Email Address" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none"></div>' +
-                    '<div><label class="block text-sm font-medium text-gray-700 mb-1">Password</label><input name="password" required type="password" placeholder="Password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none"></div>' +
-                    (!isLogin ? '<div><label class="block text-sm font-medium text-gray-700 mb-1">I want to</label><select name="role" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none"><option value="Founder">Launch my startup idea</option><option value="Job Seeker">Find a job at a startup</option><option value="Investor">Invest in startups</option></select></div><p class="text-xs text-gray-500">By signing up you agree to our <a href="#" class="text-purple-600 hover:underline">Terms</a> and <a href="#" class="text-purple-600 hover:underline">Privacy Policy</a>.</p>' : '') +
-                    '<button type="submit" class="w-full bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-semibold py-3 rounded-full transition-all shadow-lg">' + (isLogin ? 'Sign In' : 'Register') + '</button>' +
+                '<div class="text-center mb-8">' +
+                    '<h2 class="text-3xl font-bold text-gray-900 mb-2">' + (isLogin ? 'Welcome Back' : 'Create Your Account') + '</h2>' +
+                    '<p class="text-gray-500 text-sm">' + (isLogin ? 'Sign in to access your dashboard' : 'Join thousands building the future') + '</p>' +
+                '</div>' +
+                '<form onsubmit="handleAuth(event, \'' + type + '\')" class="space-y-5">' +
+                    (!isLogin ? '<div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-1.5">First Name</label><input name="firstName" required placeholder="John" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-all"></div><div><label class="block text-sm font-medium text-gray-700 mb-1.5">Last Name</label><input name="lastName" required placeholder="Doe" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-all"></div></div>' : '') +
+                    '<div><label class="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label><div class="relative"><input name="email" required type="email" placeholder="yourname@gmail.com" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-all pr-10" oninput="validateEmailField(this,' + !isLogin + ')" /><span id="email-check-icon" class="absolute right-3 top-1/2 -translate-y-1/2"></span></div>' + (!isLogin ? '<p id="email-hint" class="text-xs text-gray-400 mt-1.5">Only @gmail.com emails are accepted</p>' : '') + '</div>' +
+                    '<div><label class="block text-sm font-medium text-gray-700 mb-1.5">Password</label><div class="relative"><input name="password" required type="password" placeholder="••••••••" minlength="6" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-all pr-10" ' + (!isLogin ? 'oninput="updatePasswordStrength(this.value)"' : '') + ' /><button type="button" onclick="togglePasswordVisibility(this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>' + (!isLogin ? '<div id="password-strength" class="mt-2 hidden"><div class="flex items-center gap-2"><div class="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden"><div id="strength-bar" class="h-full rounded-full" style="width:0%"></div></div><span id="strength-text" class="text-xs font-medium min-w-[70px] text-right"></span></div></div>' : '') + '</div>' +
+                    (!isLogin ? '<div><label class="block text-sm font-medium text-gray-700 mb-2">I want to</label><div class="grid grid-cols-3 gap-2" id="role-cards"><div onclick="selectRoleCard(this,\'Founder\')" class="role-card cursor-pointer border-2 border-purple-500 bg-purple-50 rounded-xl p-3 text-center transition-all hover:shadow-md"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-purple-500 mx-auto mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg><span class="text-xs font-semibold text-gray-700 block">Founder</span></div><div onclick="selectRoleCard(this,\'Job Seeker\')" class="role-card cursor-pointer border-2 border-gray-200 rounded-xl p-3 text-center transition-all hover:shadow-md hover:border-cyan-300"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-cyan-500 mx-auto mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg><span class="text-xs font-semibold text-gray-700 block">Job Seeker</span></div><div onclick="selectRoleCard(this,\'Investor\')" class="role-card cursor-pointer border-2 border-gray-200 rounded-xl p-3 text-center transition-all hover:shadow-md hover:border-emerald-300"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-emerald-500 mx-auto mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span class="text-xs font-semibold text-gray-700 block">Investor</span></div></div><input type="hidden" name="role" id="selected-role-input" value="Founder" /></div><p class="text-xs text-gray-500">By signing up you agree to our <a href="#" class="text-purple-600 hover:underline">Terms</a> and <a href="#" class="text-purple-600 hover:underline">Privacy Policy</a>.</p>' : '') +
+                    '<button type="submit" class="w-full bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-semibold py-3.5 rounded-xl transition-all shadow-lg hover:shadow-xl hover:shadow-purple-500/20 text-base">' + (isLogin ? 'Sign In' : 'Create Account') + '</button>' +
                 '</form>' +
                 '<div class="mt-6 text-center text-sm text-gray-500">' + (isLogin ? "Don't have an account? " : "Already have an account? ") + '<button onclick="navigateTo(\'' + (isLogin ? 'signup' : 'login') + '\')" class="text-purple-600 font-semibold hover:underline">' + (isLogin ? 'Sign up' : 'Log in') + '</button></div>' +
             '</div>' +
@@ -574,7 +768,14 @@ function AuthView(type) {
     '</div>';
 }
 
-/* --- MINI DASHBOARDS (for index page direct login) --- */
+/* --- ROLE CARD SELECTOR --- */
+function selectRoleCard(el, role) {
+    document.getElementById('selected-role-input').value = role;
+    var cards = document.querySelectorAll('.role-card');
+    var colors = { 'Founder': 'border-purple-500 bg-purple-50', 'Job Seeker': 'border-cyan-500 bg-cyan-50', 'Investor': 'border-emerald-500 bg-emerald-50' };
+    cards.forEach(function(c) { c.className = 'role-card cursor-pointer border-2 border-gray-200 rounded-xl p-3 text-center transition-all hover:shadow-md'; });
+    el.className = 'role-card cursor-pointer border-2 ' + colors[role] + ' rounded-xl p-3 text-center transition-all hover:shadow-md';
+}
 function FounderDashboard() {
     var tab = state.founderTab;
     return '<div class="max-w-7xl mx-auto px-4 py-8"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4"><div><h1 class="text-3xl font-bold">Welcome, Founder ' + state.currentUser.name + '!</h1></div><button onclick="setFounderTab(\'post\')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium flex items-center hover:bg-blue-700 transition-all"><i data-lucide="plus-circle" class="mr-2"></i> Post Idea</button></div>' +
@@ -600,7 +801,7 @@ function Footer() {
     return '<footer class="bg-gray-900 text-gray-400 py-12 px-6 mt-auto">' +
         '<div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 border-b border-gray-800 pb-8 mb-8">' +
             '<div class="col-span-1 md:col-span-2"><div class="flex items-center mb-4 gap-2"><img src="images/founderaLogo.jpeg" alt="Foundera" class="w-9 h-9 rounded-lg object-cover"><span class="text-2xl logo-gradient tracking-tight">Foundera</span></div><p class="text-sm max-w-sm leading-relaxed">Empowering the next generation of innovators by connecting founders, talent, and capital in one unified ecosystem.</p></div>' +
-            '<div><h4 class="text-white font-semibold mb-4">Platform</h4><ul class="space-y-2 text-sm"><li>Founders</li><li>Job Seekers</li><li>Investors</li></ul></div>' +
+            '<div><h4 class="text-white font-semibold mb-4">Platform</h4><ul class="space-y-2 text-sm"><li><a href="index.html#signup" class="hover:text-white transition-colors">Founders</a></li><li><a href="index.html#signup" class="hover:text-white transition-colors">Job Seekers</a></li><li><a href="index.html#signup" class="hover:text-white transition-colors">Investors</a></li></ul></div>' +
             '<div><h4 class="text-white font-semibold mb-4">Company</h4><ul class="space-y-2 text-sm"><li><a href="about-us.html" class="hover:text-white transition-colors">About</a></li><li><a href="join-foundera.html" class="hover:text-white transition-colors">Careers</a></li><li>Privacy</li><li>Terms</li></ul></div>' +
         '</div>' +
         '<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-sm"><p>&copy; 2026 Foundera Inc. All rights reserved.</p><div class="flex items-center mt-4 md:mt-0 space-x-2"><i data-lucide="shield" class="w-4 h-4"></i><span>Secure & Trusted Platform</span></div></div>' +
@@ -612,6 +813,13 @@ function render() {
     var app = document.getElementById('app-root');
     var nav = document.getElementById('navbar-root');
     var footer = document.getElementById('footer-root');
+
+    // Hide nav/footer on verification screen for clean UX
+    if (state.currentScreen === 'verify') {
+        nav.innerHTML = '';
+        footer.innerHTML = '';
+        return;
+    }
 
     nav.innerHTML = Navbar();
     footer.innerHTML = Footer();
@@ -675,6 +883,51 @@ window.onload = function () {
     }
     render();
     setTimeout(initGoogleSignIn, 500);
+
+    // Check if there's a pending signup verification
+    var pending = localStorage.getItem('pendingSignup');
+    if (pending) {
+        try {
+            var pData = JSON.parse(pending);
+            var currentUser = firebase.auth().currentUser;
+            if (currentUser && currentUser.email === pData.email) {
+                if (currentUser.emailVerified) {
+                    // Already verified — save to DB and redirect
+                    saveUserToFirebase({ name: pData.name, email: pData.email, role: pData.role, picture: '', signupMethod: 'email', emailVerified: true }).then(function() {
+                        localStorage.removeItem('pendingSignup');
+                        state.currentUser = { name: pData.name, email: pData.email, role: pData.role };
+                        showToast('Email verified! Welcome to Foundera!', 'success');
+                        redirectToDashboard(pData.name, pData.email, pData.role);
+                    });
+                } else {
+                    // Not yet verified — show verification screen
+                    showVerificationScreen(currentUser, pData.name, pData.email, pData.role);
+                }
+            }
+        } catch(e) { localStorage.removeItem('pendingSignup'); }
+    }
+
+    // Listen for auth state changes (handles returning after verification via link)
+    firebase.auth().onAuthStateChanged(function(user) {
+        if (user && user.emailVerified) {
+            var pendingData = localStorage.getItem('pendingSignup');
+            if (pendingData) {
+                try {
+                    var pd = JSON.parse(pendingData);
+                    if (pd.email === user.email) {
+                        // User just verified — complete signup
+                        if (verificationPollTimer) { clearInterval(verificationPollTimer); verificationPollTimer = null; }
+                        saveUserToFirebase({ name: pd.name, email: pd.email, role: pd.role, picture: '', signupMethod: 'email', emailVerified: true }).then(function() {
+                            localStorage.removeItem('pendingSignup');
+                            state.currentUser = { name: pd.name, email: pd.email, role: pd.role };
+                            showToast('Email verified! Welcome to Foundera!', 'success');
+                            redirectToDashboard(pd.name, pd.email, pd.role);
+                        });
+                    }
+                } catch(e) {}
+            }
+        }
+    });
 
     // Listen for hash changes
     window.addEventListener('hashchange', function () {

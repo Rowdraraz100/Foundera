@@ -440,3 +440,33 @@ body {
 .mobile-nav-drawer.active {
     transform: translateX(0);
 }
+
+/* --- Toast Notifications --- */
+@keyframes toastIn {
+    from { transform: translateX(120%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+@keyframes toastOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(120%); opacity: 0; }
+}
+.animate-toast-in { animation: toastIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+.animate-toast-out { animation: toastOut 0.3s ease-in forwards; }
+
+/* --- Password Strength Bar --- */
+#strength-bar { transition: width 0.4s ease, background-color 0.4s ease; }
+
+/* --- Email Verification Screen --- */
+@keyframes bounce-slow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+.animate-bounce-slow { animation: bounce-slow 2s ease-in-out infinite; }
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.animate-spin { animation: spin 1s linear infinite; }
+
+.border-3 { border-width: 3px; }

@@ -2,28 +2,71 @@
         let currentTab = 'profile';
         
         // Get name from localStorage
-        const savedName = localStorage.getItem('seekerName') || 'Demo Seeker';
-        const savedEmail = localStorage.getItem('seekerEmail') || 'seeker@gmail.com';
+        const savedName = localStorage.getItem('seekerName') || '';
+        const savedEmail = localStorage.getItem('seekerEmail') || '';
         
         // Profile Info
         let profileData = {
             id: 101,
             name: savedName,
-            title: 'Full Stack Developer at TechFlow BD',
-            location: 'Dhaka, Bangladesh',
+            title: localStorage.getItem('seekerTitle') || '',
+            location: localStorage.getItem('seekerLocation') || '',
             email: savedEmail,
-            linkedin: localStorage.getItem('seekerLinkedin') || 'https://linkedin.com/in/demoseeker',
-            github: localStorage.getItem('seekerGithub') || 'https://github.com/demoseeker',
-            bio: localStorage.getItem('seekerBio') || 'Passionate developer with 3+ years of experience in building scalable web applications for early-stage startups. Skilled in modern JavaScript frameworks and cloud infrastructure. Always eager to learn and solve complex problems.',
-            availability: localStorage.getItem('seekerAvailability') || 'Immediately',
-            expectedSalary: localStorage.getItem('seekerSalary') || '$2,000 - $3,000/month',
+            linkedin: localStorage.getItem('seekerLinkedin') || '',
+            github: localStorage.getItem('seekerGithub') || '',
+            bio: localStorage.getItem('seekerBio') || '',
+            availability: localStorage.getItem('seekerAvailability') || '',
+            expectedSalary: localStorage.getItem('seekerSalary') || '',
             cvUrl: localStorage.getItem('seekerCvUrl') || '' 
         };
         
+        // --- LOAD PROFILE FROM FIREBASE (for data persistence across sessions) ---
+        function loadJobseekerProfileFromFirebase() {
+            if (typeof firebase === 'undefined' || !firebase.database || !savedEmail) return Promise.resolve();
+            var safeKey = savedEmail.replace(/[.#$\[\]]/g, '_');
+            return firebase.database().ref('users/jobseekers/' + safeKey).once('value').then(function(snap) {
+                var data = snap.val();
+                if (data) {
+                    profileData.name = data.name || profileData.name;
+                    profileData.title = data.title || profileData.title;
+                    profileData.location = data.location || profileData.location;
+                    profileData.email = data.email || profileData.email;
+                    profileData.linkedin = data.linkedin || profileData.linkedin;
+                    profileData.github = data.github || profileData.github;
+                    profileData.bio = data.bio || profileData.bio;
+                    profileData.availability = data.availability || profileData.availability;
+                    profileData.expectedSalary = data.expectedSalary || profileData.expectedSalary;
+                    if (Array.isArray(data.skills) && data.skills.length > 0) {
+                        userSkills = data.skills;
+                    }
+                    // Sync back to localStorage
+                    localStorage.setItem('seekerName', profileData.name);
+                    localStorage.setItem('seekerEmail', profileData.email);
+                    localStorage.setItem('seekerTitle', profileData.title);
+                    localStorage.setItem('seekerLocation', profileData.location);
+                    localStorage.setItem('seekerLinkedin', profileData.linkedin);
+                    localStorage.setItem('seekerGithub', profileData.github);
+                    localStorage.setItem('seekerBio', profileData.bio);
+                    localStorage.setItem('seekerAvailability', profileData.availability);
+                    localStorage.setItem('seekerSalary', profileData.expectedSalary);
+                    // Update UI initial
+                    var initEl = document.getElementById('user-initial');
+                    if (initEl) initEl.textContent = profileData.name.charAt(0).toUpperCase();
+                    console.log('Jobseeker profile loaded from Firebase');
+                }
+            }).catch(function(e) { console.error('Firebase load error:', e); });
+        }
+
         // --- LOGOUT FUNCTION ---
         function handleLogout() {
+            // Sign out Firebase Auth
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                firebase.auth().signOut().catch(function(){});
+            }
             localStorage.removeItem('seekerName');
             localStorage.removeItem('seekerEmail');
+            localStorage.removeItem('seekerTitle');
+            localStorage.removeItem('seekerLocation');
             localStorage.removeItem('seekerLinkedin');
             localStorage.removeItem('seekerGithub');
             localStorage.removeItem('seekerBio');
@@ -33,6 +76,7 @@
             localStorage.removeItem('seekerPicture');
             localStorage.removeItem('seekerApplications');
             localStorage.removeItem('seekerSavedJobs');
+            localStorage.removeItem('pendingSignup');
             window.location.href = 'index.html';
         }
         
@@ -40,6 +84,8 @@
         function saveProfileToStorage() {
             localStorage.setItem('seekerName', profileData.name);
             localStorage.setItem('seekerEmail', profileData.email);
+            localStorage.setItem('seekerTitle', profileData.title);
+            localStorage.setItem('seekerLocation', profileData.location);
             localStorage.setItem('seekerLinkedin', profileData.linkedin);
             localStorage.setItem('seekerGithub', profileData.github);
             localStorage.setItem('seekerBio', profileData.bio);
@@ -977,6 +1023,10 @@
         }
 
         // --- INIT ---
+        // Auth guard — redirect if not logged in
+        if (!localStorage.getItem('seekerName') && !localStorage.getItem('seekerEmail')) {
+            window.location.href = 'index.html';
+        }
         // Load from localStorage
         document.getElementById('user-initial').textContent = profileData.name.charAt(0).toUpperCase();
         
@@ -994,8 +1044,11 @@
         const appBadge = document.getElementById('app-count-badge');
         if (appBadge) appBadge.textContent = userApplications.length;
         
-        // Load real founders data from Firebase
-        fetchFoundersFromFirebase().then(function() {
+        // Load profile and founders data from Firebase
+        Promise.all([
+            loadJobseekerProfileFromFirebase(),
+            fetchFoundersFromFirebase()
+        ]).then(function() {
             setTab('overview');
         }).catch(function() {
             setTab('overview');

@@ -16,6 +16,10 @@
         
         // --- LOGOUT FUNCTION ---
         function handleLogout() {
+            // Sign out Firebase Auth
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                firebase.auth().signOut().catch(function(){});
+            }
             // Clear all founder data from localStorage
             localStorage.removeItem('founderName');
             localStorage.removeItem('founderEmail');
@@ -26,6 +30,7 @@
             localStorage.removeItem('founderAvailability');
             localStorage.removeItem('founderPicture');
             localStorage.removeItem('founderIdeas');
+            localStorage.removeItem('pendingSignup');
             
             // Redirect to main page
             window.location.href = 'index.html';

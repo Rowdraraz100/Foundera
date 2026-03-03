@@ -4,12 +4,12 @@
         // Investor Profile Info — load from localStorage or defaults
         let profileData = {
             id: 201,
-            name: localStorage.getItem('investorName') || 'Demo Investor',
-            title: localStorage.getItem('investorTitle') || 'Managing Partner',
-            location: localStorage.getItem('investorLocation') || 'Dhaka, Bangladesh',
-            email: localStorage.getItem('investorEmail') || 'investor@venturebd.com',
-            linkedin: localStorage.getItem('investorLinkedin') || 'https://linkedin.com/in/demoinvestor',
-            bio: localStorage.getItem('investorBio') || 'Experienced investor focusing on early-stage tech startups in South Asia.',
+            name: localStorage.getItem('investorName') || '',
+            title: localStorage.getItem('investorTitle') || '',
+            location: localStorage.getItem('investorLocation') || '',
+            email: localStorage.getItem('investorEmail') || '',
+            linkedin: localStorage.getItem('investorLinkedin') || '',
+            bio: localStorage.getItem('investorBio') || '',
             ticketSize: localStorage.getItem('investorTicketSize') || '$50k - $200k',
             stageFocus: ['Seed', 'Pre-Seed'],
             industryFocus: (localStorage.getItem('investorIndustryFocus') || 'FinTech, AgriTech, SaaS').split(',').map(s => s.trim())
@@ -160,6 +160,10 @@
         
         // --- LOGOUT FUNCTION ---
         function handleLogout() {
+            // Sign out Firebase Auth
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                firebase.auth().signOut().catch(function(){});
+            }
             localStorage.removeItem('investorName');
             localStorage.removeItem('investorEmail');
             localStorage.removeItem('investorTitle');
@@ -169,6 +173,7 @@
             localStorage.removeItem('investorTicketSize');
             localStorage.removeItem('investorIndustryFocus');
             localStorage.removeItem('investorPicture');
+            localStorage.removeItem('pendingSignup');
             window.location.href = 'index.html';
         }
 
@@ -621,6 +626,10 @@ function toggleMobileSidebar() {
     overlay.classList.toggle('hidden');
 }
         // --- INIT ---
+        // Auth guard — redirect if not logged in
+        if (!localStorage.getItem('investorName') && !localStorage.getItem('investorEmail')) {
+            window.location.href = 'index.html';
+        }
         document.getElementById('user-initial').textContent = profileData.name.charAt(0).toUpperCase();
         
         // Load real founders data from Firebase
