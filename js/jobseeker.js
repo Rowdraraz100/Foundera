@@ -135,12 +135,21 @@
                         foundersList.push({
                             id: idx,
                             name: f.name || 'Unknown',
-                            startup: f.startupName || f.name + "'s Startup",
+                            startup: f.startupName || '',
                             industry: f.industry || 'General',
-                            bio: f.bio || 'Founder on Foundera platform.',
-                            requirements: f.skills ? f.skills.split(',').map(function(s) { return s.trim(); }) : ['Team Members'],
+                            bio: f.bio || '',
+                            picture: f.picture || '',
+                            description: f.ideaDescription || '',
+                            problem: f.problem || '',
+                            vision: f.vision || '',
+                            businessPlan: f.businessPlan || '',
+                            skillsNeeded: Array.isArray(f.skillsNeeded) ? f.skillsNeeded : (f.skillsNeeded ? String(f.skillsNeeded).split(',').map(function(s){return s.trim();}) : []),
+                            fundingNeeded: f.fundingNeeded || '',
+                            requirements: f.skills ? f.skills.split(',').map(function(s) { return s.trim(); }) : (Array.isArray(f.skillsNeeded) ? f.skillsNeeded : []),
                             linkedin: f.linkedin || '',
-                            email: f.email || ''
+                            github: f.github || '',
+                            email: f.email || '',
+                            hasIdea: !!f.startupName
                         });
                         idx++;
                     });
@@ -719,53 +728,59 @@
                             </div>
                             <select class="px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white focus:ring-2 focus:ring-blue-500">
                                 <option>All Industries</option>
-                                <option>AgriTech</option>
-                                <option>FinTech</option>
-                                <option>HealthTech</option>
-                                <option>EdTech</option>
+                                <option>AgriTech</option><option>FinTech</option><option>HealthTech</option><option>EdTech</option><option>SaaS</option><option>AI/ML</option><option>E-commerce</option>
                             </select>
                         </div>
                     </div>
 
-                    <div class="grid md:grid-cols-2 gap-6">
+                    <div class="space-y-8">
                         ${foundersList.map(founder => `
-                            <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6 shadow-lg hover:border-blue-500/50 transition-colors flex flex-col h-full">
-                                <div class="flex justify-between items-start mb-4">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-14 h-14 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center font-bold text-xl text-white shadow-md">
-                                            ${founder.name.charAt(0)}
+                            <div class="bg-gray-800/40 rounded-3xl border border-gray-700/50 p-8 shadow-xl relative overflow-hidden group hover:border-blue-500/30 transition-colors">
+                                <div class="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-blue-500 to-green-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                
+                                <div class="flex flex-col lg:flex-row gap-8">
+                                    <!-- Left: Founder Profile -->
+                                    <div class="lg:w-1/3 space-y-5">
+                                        <div class="flex items-start gap-4">
+                                            ${founder.picture 
+                                                ? '<img src="' + founder.picture + '" class="w-16 h-16 rounded-2xl object-cover border border-gray-700 shadow-inner">'
+                                                : '<div class="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center font-bold text-2xl text-white shadow-inner">' + founder.name.charAt(0) + '</div>'
+                                            }
+                                            <div>
+                                                <h3 class="text-xl font-bold text-white">${founder.name}</h3>
+                                                ${founder.startup 
+                                                    ? '<p class="text-sm text-blue-400 font-medium">Founder @ ' + founder.startup + '</p>' 
+                                                    : '<p class="text-sm text-gray-400 italic">No startup posted yet</p>'
+                                                }
+                                                <div class="flex gap-2 mt-2">
+                                                    ${founder.linkedin ? '<a href="' + founder.linkedin + '" target="_blank" class="p-1.5 bg-gray-700 rounded text-gray-300 hover:text-white transition" title="LinkedIn"><i data-lucide="linkedin" class="w-4 h-4"></i></a>' : ''}
+                                                    ${founder.github ? '<a href="' + founder.github + '" target="_blank" class="p-1.5 bg-gray-700 rounded text-gray-300 hover:text-white transition" title="GitHub"><i data-lucide="github" class="w-4 h-4"></i></a>' : ''}
+                                                    ${founder.email ? '<a href="mailto:' + founder.email + '" class="p-1.5 bg-gray-700 rounded text-gray-300 hover:text-white transition" title="Email"><i data-lucide="mail" class="w-4 h-4"></i></a>' : ''}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 class="text-lg font-bold text-white">${founder.name}</h3>
-                                            <p class="text-sm text-blue-400 font-medium">Founder at ${founder.startup}</p>
+
+                                        ${founder.bio ? '<p class="text-gray-300 text-sm leading-relaxed">' + founder.bio + '</p>' : ''}
+
+                                        ${founder.hasIdea ? '<div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700"><div class="grid grid-cols-2 gap-3 text-sm"><div><span class="block text-gray-500 text-xs uppercase tracking-wider mb-1">Industry</span><span class="font-medium text-white">' + founder.industry + '</span></div><div><span class="block text-gray-500 text-xs uppercase tracking-wider mb-1">Funding</span><span class="font-bold text-green-400">' + (founder.fundingNeeded || 'Not Disclosed') + '</span></div></div></div>' : ''}
+
+                                        ${founder.skillsNeeded.length > 0 ? '<div class="bg-gray-900/50 rounded-xl p-4 border border-gray-700"><p class="text-xs text-gray-400 mb-2 font-bold uppercase tracking-wider">Skills Needed:</p><div class="flex flex-wrap gap-2">' + founder.skillsNeeded.map(function(s){ return '<span class="bg-blue-500/15 text-blue-300 text-xs px-2.5 py-1 rounded-lg border border-blue-500/30">' + s + '</span>'; }).join('') + '</div></div>' : ''}
+
+                                        <div class="flex gap-3">
+                                            ${founder.email ? '<a href="mailto:' + founder.email + '" class="flex-1 seeker-btn text-white py-2.5 rounded-xl font-bold text-sm shadow-lg text-center">Contact Founder</a>' : ''}
+                                            ${founder.linkedin ? '<a href="' + founder.linkedin + '" target="_blank" class="flex-1 border border-gray-600 hover:bg-gray-700 text-gray-300 py-2.5 rounded-xl font-bold text-sm text-center transition flex items-center justify-center"><i data-lucide="linkedin" class="w-4 h-4 mr-1"></i> LinkedIn</a>' : ''}
                                         </div>
                                     </div>
-                                    <span class="bg-gray-900 text-gray-300 text-xs px-3 py-1 rounded-full border border-gray-700">${founder.industry}</span>
-                                </div>
-                                
-                                <div class="mb-4 flex-grow">
-                                    <p class="text-gray-300 text-sm leading-relaxed">"${founder.bio}"</p>
-                                </div>
 
-                                <div class="bg-gray-900/50 rounded-xl p-4 border border-gray-700 mb-5">
-                                    <p class="text-xs text-gray-400 mb-2 font-bold uppercase tracking-wider">Currently Looking For:</p>
-                                    <ul class="space-y-1">
-                                        ${founder.requirements.map(req => `
-                                            <li class="text-sm text-gray-200 flex items-start">
-                                                <i data-lucide="chevron-right" class="w-4 h-4 text-blue-400 mr-1 shrink-0 mt-0.5"></i>
-                                                ${req}
-                                            </li>
-                                        `).join('')}
-                                    </ul>
-                                </div>
-
-                                <div class="flex gap-3 pt-4 border-t border-gray-700/50 mt-auto">
-                                    <a href="${founder.linkedin}" target="_blank" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg font-bold text-sm text-center transition flex items-center justify-center">
-                                        <i data-lucide="linkedin" class="w-4 h-4 mr-2"></i> Connect
-                                    </a>
-                                    <a href="mailto:${founder.email}" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg font-bold text-sm text-center transition flex items-center justify-center border border-gray-600">
-                                        <i data-lucide="mail" class="w-4 h-4 mr-2"></i> Email
-                                    </a>
+                                    <!-- Right: Full Idea Details -->
+                                    ${founder.hasIdea ? '<div class="lg:w-2/3 border-t lg:border-t-0 lg:border-l border-gray-700/50 pt-6 lg:pt-0 lg:pl-8 space-y-5">' +
+                                        '<div class="flex items-center gap-2 mb-2"><span class="bg-green-500/20 text-green-400 text-xs px-3 py-1 rounded-full font-medium border border-green-500/30">Active Startup</span><span class="bg-blue-500/20 text-blue-400 text-xs px-3 py-1 rounded-full border border-blue-500/30">' + founder.industry + '</span></div>' +
+                                        '<h4 class="text-2xl font-bold text-white">' + founder.startup + '</h4>' +
+                                        (founder.description ? '<p class="text-gray-300 text-sm leading-relaxed">' + founder.description + '</p>' : '') +
+                                        (founder.problem ? '<div><h5 class="text-white font-bold text-sm mb-1 flex items-center"><i data-lucide="alert-circle" class="w-4 h-4 text-red-400 mr-2"></i> Problem Statement</h5><p class="text-gray-400 text-sm leading-relaxed">' + founder.problem + '</p></div>' : '') +
+                                        (founder.vision ? '<div><h5 class="text-white font-bold text-sm mb-1 flex items-center"><i data-lucide="eye" class="w-4 h-4 text-blue-400 mr-2"></i> Vision & Mission</h5><p class="text-gray-400 text-sm leading-relaxed">' + founder.vision + '</p></div>' : '') +
+                                        (founder.businessPlan ? '<div><h5 class="text-white font-bold text-sm mb-1 flex items-center"><i data-lucide="briefcase" class="w-4 h-4 text-purple-400 mr-2"></i> Business Plan</h5><p class="text-gray-400 text-sm leading-relaxed">' + founder.businessPlan + '</p></div>' : '') +
+                                    '</div>' : '<div class="lg:w-2/3 border-t lg:border-t-0 lg:border-l border-gray-700/50 pt-6 lg:pt-0 lg:pl-8 flex items-center justify-center"><div class="text-center py-8"><i data-lucide="file-question" class="w-12 h-12 text-gray-600 mx-auto mb-3"></i><p class="text-gray-500 text-sm">This founder hasn\\'t shared their startup idea yet.</p></div></div>'}
                                 </div>
                             </div>
                         `).join('')}

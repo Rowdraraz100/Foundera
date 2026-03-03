@@ -20,16 +20,16 @@
     </div>
 
     <!-- Navigation -->
-    <nav class="bg-[#1a0b2e] sticky top-0 z-50 border-b border-white/10">
+    <nav class="nav-glass nav-animated sticky top-0 z-50 border-b border-white/10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <a href="index.html" class="flex items-center cursor-pointer gap-2">
                 <img src="images/founderaLogo.jpeg" alt="Foundera" class="w-9 h-9 rounded-lg object-cover">
-                <span class="text-2xl font-bold text-white tracking-tight">Foundera</span>
+                <span class="text-2xl logo-gradient tracking-tight">Foundera</span>
             </a>
             <div class="hidden md:flex items-center space-x-6">
-                <a href="blog.html" class="text-gray-300 hover:text-white font-medium text-sm transition-colors">Blog</a>
-                <a href="success-stories.html" class="text-gray-300 hover:text-white font-medium text-sm transition-colors">Success Stories</a>
-                <a href="about-us.html" class="text-white font-medium text-sm transition-colors">About Us</a>
+                <a href="blog.html" class="nav-link-animated text-gray-300 hover:text-white font-medium text-sm transition-colors">Blog</a>
+                <a href="success-stories.html" class="nav-link-animated text-gray-300 hover:text-white font-medium text-sm transition-colors">Success Stories</a>
+                <a href="about-us.html" class="nav-link-animated text-white font-medium text-sm transition-colors">About Us</a>
             </div>
             <button class="md:hidden flex flex-col justify-center items-center w-10 h-10 rounded-lg bg-white/10 border border-white/20" onclick="toggleMobileNav()">
                 <span class="block w-5 h-0.5 bg-white mb-1"></span><span class="block w-5 h-0.5 bg-white mb-1"></span><span class="block w-5 h-0.5 bg-white"></span>
@@ -56,55 +56,68 @@
     </section>
 
     <!-- Our Story Section -->
-    <section class="bg-gradient-to-b from-[#1a0b2e] to-[#1E1B4B] py-20 px-6">
-        <div class="max-w-6xl mx-auto">
+    <section class="bg-gradient-to-b from-[#1a0b2e] to-[#1E1B4B] py-20 px-6 relative overflow-hidden">
+        <div class="absolute top-1/3 right-0 w-72 h-72 bg-purple-600/10 rounded-full blur-[100px] animate-float" style="animation-duration: 6s;"></div>
+        <div class="absolute bottom-1/4 left-0 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl animate-float" style="animation-duration: 8s; animation-delay: 2s;"></div>
+        <div class="max-w-6xl mx-auto relative z-10">
             <div class="grid md:grid-cols-2 gap-16 items-center">
-                <div class="animate-slide-up">
-                    <span class="text-purple-400 font-medium text-sm uppercase tracking-wider">Our Story</span>
-                    <h2 class="text-4xl font-bold text-white mt-4 mb-6">Born from Frustration, Built with Purpose</h2>
-                    <div class="space-y-4 text-gray-400 text-lg leading-relaxed">
-                        <p>
-                            In 2024, our founders experienced firsthand the fragmented nature of the startup ecosystem. Finding co-founders meant scouring LinkedIn. Hiring talent required multiple job boards. Connecting with investors felt like a black box.
+                <div>
+                    <span class="text-purple-400 font-medium text-sm uppercase tracking-wider animate-slide-up" style="display: inline-block;">Our Story</span>
+                    <h2 class="text-4xl md:text-5xl font-bold text-white mt-4 mb-8 animate-slide-up" style="font-family: 'Space Grotesk', sans-serif; line-height: 1.15;">
+                        Born from <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Frustration</span>,<br>Built with <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">Purpose</span>
+                    </h2>
+                    <div class="space-y-5 text-gray-400 text-lg leading-relaxed">
+                        <p class="animate-slide-up delay-100">
+                            In <strong class="text-white">2025</strong>, while working on a university project, our team began exploring the startup ecosystem more deeply. During this journey, we noticed a common problem: <span class="text-purple-300">many talented people struggle to find jobs</span>, many individuals have great startup ideas but cannot find the right team members, and connecting with investors often feels almost impossible.
                         </p>
-                        <p>
-                            We asked ourselves: <span class="text-white font-medium">Why isn't there one place where all three come together?</span>
+                        <p class="animate-slide-up delay-200">
+                            We also experienced firsthand how <strong class="text-white">fragmented the startup ecosystem</strong> is. Finding co-founders usually means searching through platforms like LinkedIn. Hiring talent requires using multiple job boards. And connecting with investors often feels like <span class="text-cyan-300">navigating a black box</span>.
                         </p>
-                        <p>
-                            That question sparked Foundera — a platform designed to eliminate the barriers between great ideas, talented people, and the capital needed to bring visions to life.
+                        <p class="animate-slide-up delay-300">
+                            This made us ask a simple question:
+                        </p>
+                        <blockquote class="border-l-4 border-purple-500 pl-5 py-2 my-4 animate-slide-up delay-300">
+                            <span class="text-white font-semibold text-xl" style="font-family: 'Space Grotesk', sans-serif;">"Why isn't there one place where all three come together?"</span>
+                        </blockquote>
+                        <p class="animate-slide-up delay-300">
+                            That question sparked <strong class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Foundera</strong> — a platform designed to eliminate the barriers between great ideas, talented people, and the capital needed to bring visions to life.
                         </p>
                     </div>
                 </div>
                 <div class="animate-slide-up delay-200">
-                    <div class="glass-card rounded-3xl p-8 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-32 h-32 bg-purple-500/20 rounded-full blur-2xl"></div>
+                    <div class="glass-card rounded-3xl p-8 relative overflow-hidden group hover:bg-white/10 transition-all duration-500">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-purple-500/20 rounded-full blur-2xl group-hover:bg-purple-500/30 transition-all duration-500"></div>
                         <div class="relative z-10">
                             <div class="flex items-center space-x-4 mb-8">
-                                <div class="w-20 h-20 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg">
+                                <div class="w-20 h-20 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
                                     <i data-lucide="rocket" class="text-white w-10 h-10"></i>
                                 </div>
                                 <div>
-                                    <p class="text-white font-bold text-2xl">2024</p>
+                                    <p class="text-white font-bold text-2xl">2025</p>
                                     <p class="text-gray-400">Founded</p>
                                 </div>
                             </div>
-                            <div class="space-y-4">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-                                        <i data-lucide="check" class="text-emerald-400 w-5 h-5"></i>
-                                    </div>
-                                    <p class="text-gray-300">500+ startups launched</p>
+                            <!-- Journey milestones -->
+                            <div class="space-y-4 mt-6">
+                                <div class="flex items-center gap-3 animate-slide-up delay-100">
+                                    <div class="w-3 h-3 bg-purple-500 rounded-full shadow-lg shadow-purple-500/50"></div>
+                                    <div class="h-px flex-1 bg-gradient-to-r from-purple-500/50 to-transparent"></div>
+                                    <span class="text-gray-300 text-sm font-medium">Idea Born</span>
                                 </div>
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center">
-                                        <i data-lucide="check" class="text-cyan-400 w-5 h-5"></i>
-                                    </div>
-                                    <p class="text-gray-300">10,000+ active members</p>
+                                <div class="flex items-center gap-3 animate-slide-up delay-200">
+                                    <div class="w-3 h-3 bg-cyan-500 rounded-full shadow-lg shadow-cyan-500/50"></div>
+                                    <div class="h-px flex-1 bg-gradient-to-r from-cyan-500/50 to-transparent"></div>
+                                    <span class="text-gray-300 text-sm font-medium">Team Assembled</span>
                                 </div>
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center">
-                                        <i data-lucide="check" class="text-amber-400 w-5 h-5"></i>
-                                    </div>
-                                    <p class="text-gray-300">$25M+ in funding facilitated</p>
+                                <div class="flex items-center gap-3 animate-slide-up delay-300">
+                                    <div class="w-3 h-3 bg-emerald-500 rounded-full shadow-lg shadow-emerald-500/50"></div>
+                                    <div class="h-px flex-1 bg-gradient-to-r from-emerald-500/50 to-transparent"></div>
+                                    <span class="text-gray-300 text-sm font-medium">Platform Launched</span>
+                                </div>
+                                <div class="flex items-center gap-3 animate-slide-up delay-300">
+                                    <div class="w-3 h-3 bg-amber-500 rounded-full shadow-lg shadow-amber-500/50 animate-pulse"></div>
+                                    <div class="h-px flex-1 bg-gradient-to-r from-amber-500/50 to-transparent"></div>
+                                    <span class="text-gray-300 text-sm font-medium">Growing Together...</span>
                                 </div>
                             </div>
                         </div>
@@ -127,25 +140,41 @@
 
             <div class="grid md:grid-cols-2 gap-8">
                 <!-- Vision -->
-                <div class="glass-card rounded-[32px] p-10 hover:bg-white/10 transition-all duration-500 animate-slide-up">
-                    <div class="bg-gradient-to-br from-blue-500 to-cyan-400 w-16 h-16 rounded-2xl flex items-center justify-center mb-8 shadow-lg shadow-blue-500/20">
-                        <i data-lucide="eye" class="text-white w-8 h-8"></i>
+                <div class="vm-card-vision glass-card rounded-[32px] p-10 relative group hover:bg-white/10 transition-all duration-500 animate-slide-up hover:-translate-y-3 hover:shadow-2xl hover:shadow-blue-500/15 overflow-hidden">
+                    <div class="absolute -inset-1 bg-gradient-to-br from-blue-500/30 via-cyan-400/20 to-transparent rounded-[36px] blur-xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
+                    <div class="relative z-10">
+                        <div class="bg-gradient-to-br from-blue-500 to-cyan-400 w-16 h-16 rounded-2xl flex items-center justify-center mb-8 shadow-lg shadow-blue-500/20 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                            <i data-lucide="eye" class="text-white w-8 h-8"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-white mb-4" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">Our Vision</h3>
+                        <p class="text-xl text-slate-300 leading-relaxed">
+                            A world where <span class="text-blue-400 font-semibold">anyone with a dream</span> can find the people and resources to make it real — regardless of their location, network, or background.
+                        </p>
+                        <div class="mt-8 flex items-center gap-3">
+                            <div class="h-1.5 w-14 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full group-hover:w-24 transition-all duration-700 shadow-lg shadow-blue-500/30"></div>
+                            <div class="h-1.5 w-4 bg-slate-700 rounded-full group-hover:bg-blue-500/40 transition-all duration-500"></div>
+                            <div class="h-1.5 w-4 bg-slate-700 rounded-full group-hover:bg-blue-500/20 transition-all duration-500 delay-100"></div>
+                        </div>
                     </div>
-                    <h3 class="text-3xl font-bold text-white mb-4">Our Vision</h3>
-                    <p class="text-xl text-slate-300 leading-relaxed">
-                        A world where <span class="text-blue-400 font-medium">anyone with a dream</span> can find the people and resources to make it real — regardless of their location, network, or background.
-                    </p>
                 </div>
 
                 <!-- Mission -->
-                <div class="glass-card rounded-[32px] p-10 hover:bg-white/10 transition-all duration-500 animate-slide-up delay-100">
-                    <div class="bg-gradient-to-br from-purple-500 to-pink-400 w-16 h-16 rounded-2xl flex items-center justify-center mb-8 shadow-lg shadow-purple-500/20">
-                        <i data-lucide="target" class="text-white w-8 h-8"></i>
+                <div class="vm-card-mission glass-card rounded-[32px] p-10 relative group hover:bg-white/10 transition-all duration-500 animate-slide-up delay-100 hover:-translate-y-3 hover:shadow-2xl hover:shadow-purple-500/15 overflow-hidden">
+                    <div class="absolute -inset-1 bg-gradient-to-br from-purple-500/30 via-pink-400/20 to-transparent rounded-[36px] blur-xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
+                    <div class="relative z-10">
+                        <div class="bg-gradient-to-br from-purple-500 to-pink-400 w-16 h-16 rounded-2xl flex items-center justify-center mb-8 shadow-lg shadow-purple-500/20 group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500">
+                            <i data-lucide="target" class="text-white w-8 h-8"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-white mb-4" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">Our Mission</h3>
+                        <p class="text-xl text-slate-300 leading-relaxed">
+                            To <span class="text-purple-400 font-semibold">democratize startup building</span> by creating the most comprehensive platform that connects founders, talent, and capital seamlessly.
+                        </p>
+                        <div class="mt-8 flex items-center gap-3">
+                            <div class="h-1.5 w-4 bg-slate-700 rounded-full group-hover:bg-purple-500/20 transition-all duration-500 delay-100"></div>
+                            <div class="h-1.5 w-14 bg-gradient-to-r from-purple-500 to-pink-400 rounded-full group-hover:w-24 transition-all duration-700 shadow-lg shadow-purple-500/30"></div>
+                            <div class="h-1.5 w-4 bg-slate-700 rounded-full group-hover:bg-purple-500/40 transition-all duration-500"></div>
+                        </div>
                     </div>
-                    <h3 class="text-3xl font-bold text-white mb-4">Our Mission</h3>
-                    <p class="text-xl text-slate-300 leading-relaxed">
-                        To <span class="text-purple-400 font-medium">democratize startup building</span> by creating the most comprehensive platform that connects founders, talent, and capital seamlessly.
-                    </p>
                 </div>
             </div>
         </div>
@@ -202,103 +231,108 @@
     <!-- Team Section -->
     <section class="bg-[#1a0b2e] py-24 px-6 relative overflow-hidden">
         <div class="absolute top-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-0 left-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl"></div>
         <div class="max-w-6xl mx-auto relative z-10">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">Meet Our Team</h2>
-                <p class="text-gray-400 text-lg">The people working to connect the startup ecosystem</p>
+            <div class="text-center mb-16 animate-slide-up">
+                <span class="text-purple-400 font-medium text-sm uppercase tracking-wider">Our People</span>
+                <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 mt-3" style="font-family: 'Orbitron', sans-serif;">Meet Our Team</h2>
+                <p class="text-gray-400 text-lg max-w-2xl mx-auto">The passionate minds behind Foundera — turning a bold idea into reality</p>
             </div>
 
             <div class="grid md:grid-cols-3 gap-8">
-                <!-- Team Member 1 -->
-                <div class="glass-card rounded-3xl p-8 text-center hover:bg-white/10 transition-all duration-300 group animate-slide-up">
-                    <div class="w-32 h-32 bg-gradient-to-br from-purple-500 to-violet-600 rounded-full mx-auto mb-6 flex items-center justify-center shadow-xl shadow-purple-500/30 group-hover:scale-105 transition-transform">
-                        <span class="text-white text-4xl font-bold">AF</span>
-                    </div>
-                    <h3 class="text-xl font-bold text-white mb-1">Arif Hossain</h3>
-                    <p class="text-purple-400 text-sm mb-4">CEO & Co-Founder</p>
-                    <p class="text-gray-400 text-sm">Former founder with 2 exits. Passionate about democratizing access to startup resources.</p>
-                    <div class="flex justify-center space-x-3 mt-6">
-                        <a href="#" class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors">
-                            <i data-lucide="linkedin" class="text-gray-400 w-5 h-5"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors">
-                            <i data-lucide="twitter" class="text-gray-400 w-5 h-5"></i>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Team Member 2 -->
-                <div class="glass-card rounded-3xl p-8 text-center hover:bg-white/10 transition-all duration-300 group animate-slide-up delay-100">
-                    <div class="w-32 h-32 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full mx-auto mb-6 flex items-center justify-center shadow-xl shadow-cyan-500/30 group-hover:scale-105 transition-transform">
-                        <span class="text-white text-4xl font-bold">TK</span>
-                    </div>
-                    <h3 class="text-xl font-bold text-white mb-1">Tasnima Khan</h3>
-                    <p class="text-cyan-400 text-sm mb-4">CTO & Co-Founder</p>
-                    <p class="text-gray-400 text-sm">Ex-Google engineer. Building the technical infrastructure to power next-gen startups.</p>
-                    <div class="flex justify-center space-x-3 mt-6">
-                        <a href="#" class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors">
-                            <i data-lucide="linkedin" class="text-gray-400 w-5 h-5"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors">
-                            <i data-lucide="github" class="text-gray-400 w-5 h-5"></i>
-                        </a>
+                <!-- Rowdraraz Paul -->
+                <div class="glass-card rounded-3xl p-8 text-center group animate-slide-up hover:bg-white/10 transition-all duration-500 hover:-translate-y-3 hover:shadow-2xl hover:shadow-purple-500/20 relative overflow-hidden">
+                    <div class="absolute -inset-1 bg-gradient-to-br from-purple-500/20 via-pink-400/10 to-transparent rounded-[36px] blur-xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
+                    <div class="relative z-10">
+                        <div class="w-36 h-36 rounded-full mx-auto mb-6 relative">
+                            <div class="absolute -inset-1 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full opacity-70 group-hover:opacity-100 transition-opacity duration-500 blur-sm"></div>
+                            <img src="images/rowdra.jpeg" alt="Rowdraraz Paul" class="w-36 h-36 rounded-full object-cover relative z-10 border-2 border-purple-500/50 group-hover:scale-105 transition-transform duration-500">
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-1">Rowdraraz Paul</h3>
+                        <p class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 text-sm font-semibold mb-4">Founder & CEO</p>
+                        <p class="text-gray-400 text-sm leading-relaxed">Visionary leader driving Foundera's mission to unify the startup ecosystem for founders, talent, and investors.</p>
+                        <div class="flex justify-center mt-6">
+                            <a href="https://www.linkedin.com/in/rowdraraz-paul-511a3a374/" target="_blank" rel="noopener noreferrer" class="w-11 h-11 bg-white/10 rounded-xl flex items-center justify-center hover:bg-blue-600/30 hover:scale-110 transition-all duration-300">
+                                <i data-lucide="linkedin" class="text-gray-400 group-hover:text-blue-400 w-5 h-5"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Team Member 3 -->
-                <div class="glass-card rounded-3xl p-8 text-center hover:bg-white/10 transition-all duration-300 group animate-slide-up delay-200">
-                    <div class="w-32 h-32 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full mx-auto mb-6 flex items-center justify-center shadow-xl shadow-emerald-500/30 group-hover:scale-105 transition-transform">
-                        <span class="text-white text-4xl font-bold">RH</span>
+                <!-- Partho Sarkar -->
+                <div class="glass-card rounded-3xl p-8 text-center group animate-slide-up delay-100 hover:bg-white/10 transition-all duration-500 hover:-translate-y-3 hover:shadow-2xl hover:shadow-cyan-500/20 relative overflow-hidden">
+                    <div class="absolute -inset-1 bg-gradient-to-br from-cyan-500/20 via-blue-400/10 to-transparent rounded-[36px] blur-xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
+                    <div class="relative z-10">
+                        <div class="w-36 h-36 rounded-full mx-auto mb-6 relative">
+                            <div class="absolute -inset-1 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full opacity-70 group-hover:opacity-100 transition-opacity duration-500 blur-sm"></div>
+                            <img src="images/partho.JPG" alt="Partho Sarkar" class="w-36 h-36 rounded-full object-cover relative z-10 border-2 border-cyan-500/50 group-hover:scale-105 transition-transform duration-500">
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-1">Partho Sarkar</h3>
+                        <p class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 text-sm font-semibold mb-4">Co-Founder & CTO</p>
+                        <p class="text-gray-400 text-sm leading-relaxed">The technical architect building Foundera's platform from the ground up — turning complex ideas into seamless experiences.</p>
+                        <div class="flex justify-center mt-6">
+                            <a href="https://www.linkedin.com/in/parth0/" target="_blank" rel="noopener noreferrer" class="w-11 h-11 bg-white/10 rounded-xl flex items-center justify-center hover:bg-blue-600/30 hover:scale-110 transition-all duration-300">
+                                <i data-lucide="linkedin" class="text-gray-400 group-hover:text-blue-400 w-5 h-5"></i>
+                            </a>
+                        </div>
                     </div>
-                    <h3 class="text-xl font-bold text-white mb-1">Rafiq Hassan</h3>
-                    <p class="text-emerald-400 text-sm mb-4">Head of Community</p>
-                    <p class="text-gray-400 text-sm">Community builder. Former lead at a top accelerator. Connecting founders worldwide.</p>
-                    <div class="flex justify-center space-x-3 mt-6">
-                        <a href="#" class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors">
-                            <i data-lucide="linkedin" class="text-gray-400 w-5 h-5"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors">
-                            <i data-lucide="twitter" class="text-gray-400 w-5 h-5"></i>
-                        </a>
+                </div>
+
+                <!-- Md. Abu Sufiyan -->
+                <div class="glass-card rounded-3xl p-8 text-center group animate-slide-up delay-200 hover:bg-white/10 transition-all duration-500 hover:-translate-y-3 hover:shadow-2xl hover:shadow-emerald-500/20 relative overflow-hidden">
+                    <div class="absolute -inset-1 bg-gradient-to-br from-emerald-500/20 via-green-400/10 to-transparent rounded-[36px] blur-xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
+                    <div class="relative z-10">
+                        <div class="w-36 h-36 rounded-full mx-auto mb-6 relative">
+                            <div class="absolute -inset-1 bg-gradient-to-br from-emerald-500 to-green-500 rounded-full opacity-70 group-hover:opacity-100 transition-opacity duration-500 blur-sm"></div>
+                            <img src="images/abu sufiyan.png" alt="Md. Abu Sufiyan" class="w-36 h-36 rounded-full object-cover relative z-10 border-2 border-emerald-500/50 group-hover:scale-105 transition-transform duration-500">
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-1">Md. Abu Sufiyan</h3>
+                        <p class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-400 text-sm font-semibold mb-4">COO & Manager</p>
+                        <p class="text-gray-400 text-sm leading-relaxed">Operations strategist ensuring Foundera runs smoothly — managing workflows, teams, and growth with precision.</p>
+                        <div class="flex justify-center mt-6">
+                            <a href="https://www.linkedin.com/in/md-abusufiyan-378741269/" target="_blank" rel="noopener noreferrer" class="w-11 h-11 bg-white/10 rounded-xl flex items-center justify-center hover:bg-blue-600/30 hover:scale-110 transition-all duration-300">
+                                <i data-lucide="linkedin" class="text-gray-400 group-hover:text-blue-400 w-5 h-5"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Contact Section -->
-    <section class="bg-[#1E1B4B] py-20 px-6">
-        <div class="max-w-4xl mx-auto">
-            <div class="glass-card rounded-[40px] p-12 text-center">
-                <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Get In Touch</h2>
-                <p class="text-gray-400 text-lg mb-10 max-w-xl mx-auto">
-                    Have questions? Want to partner with us? We'd love to hear from you.
-                </p>
-                <div class="grid md:grid-cols-3 gap-6 mb-10">
-                    <div class="p-6 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors">
-                        <div class="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mx-auto mb-4">
-                            <i data-lucide="mail" class="text-purple-400 w-6 h-6"></i>
-                        </div>
-                        <p class="text-gray-400 text-sm">Email Us</p>
-                        <p class="text-white font-medium">hello@foundera.io</p>
+    <!-- Foundera is Just the Beginning -->
+    <section class="bg-[#0d0620] py-24 px-6 relative overflow-hidden">
+        <div class="absolute inset-0">
+            <div class="absolute inset-0" style="background-image: linear-gradient(rgba(124,58,237,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,0.07) 1px, transparent 1px); background-size: 60px 60px;"></div>
+        </div>
+        <div class="max-w-4xl mx-auto relative z-10">
+            <div class="relative rounded-[32px] border border-purple-500/20 bg-gradient-to-b from-[#1a0b2e]/90 to-[#0d0620]/95 p-12 md:p-16 text-center overflow-hidden shadow-2xl shadow-purple-900/30">
+                <div class="absolute inset-0 rounded-[32px]" style="background: linear-gradient(135deg, rgba(168,85,247,0.1), transparent 40%, transparent 60%, rgba(99,102,241,0.08)); pointer-events:none;"></div>
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[200px] bg-purple-600/10 rounded-full blur-[100px]"></div>
+                
+                <!-- Logo Icon -->
+                <div class="relative z-10 mb-8 inline-block">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1a0b2e] to-[#2d1b69] border border-purple-500/30 flex items-center justify-center shadow-lg shadow-purple-500/20 mx-auto animate-float" style="animation-duration: 4s;">
+                        <img src="images/founderaLogo.jpeg" alt="Foundera" class="w-10 h-10 rounded-lg object-cover">
                     </div>
-                    <div class="p-6 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors">
-                        <div class="w-12 h-12 bg-cyan-500/20 rounded-xl flex items-center justify-center mx-auto mb-4">
-                            <i data-lucide="map-pin" class="text-cyan-400 w-6 h-6"></i>
-                        </div>
-                        <p class="text-gray-400 text-sm">Location</p>
-                        <p class="text-white font-medium">Dhaka, Bangladesh</p>
-                    </div>
-                    <div class="p-6 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors">
-                        <div class="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center mx-auto mb-4">
-                            <i data-lucide="message-circle" class="text-emerald-400 w-6 h-6"></i>
-                        </div>
-                        <p class="text-gray-400 text-sm">Social</p>
-                        <p class="text-white font-medium">@foundera</p>
-                    </div>
+                    <div class="absolute -inset-2 rounded-2xl border border-amber-500/20 animate-pulse-slow" style="animation-duration: 3s;"></div>
                 </div>
-                <a href="index.html" class="inline-block bg-[#7c3aed] hover:bg-[#8b5cf6] text-white font-medium px-10 py-4 rounded-full text-lg transition-colors shadow-lg shadow-purple-500/30">
+                
+                <!-- Heading -->
+                <h2 class="relative z-10 text-4xl md:text-5xl font-bold text-white mb-6 animate-text-spring" style="font-family: 'Space Grotesk', sans-serif;">
+                    Foundera Is Just the <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 animate-gradient">Beginning</span>
+                </h2>
+                
+                <!-- Subtitle -->
+                <p class="relative z-10 text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed animate-text-spring delay-200">
+                    We're not building another tool — we're building the infrastructure for the next generation of startups.<br>
+                    One platform. Every connection. Infinite possibilities.
+                </p>
+                
+                <!-- CTA Button -->
+                <a href="join-foundera.html" class="relative z-10 inline-flex items-center gap-2 bg-[#7c3aed] hover:bg-[#8b5cf6] text-white font-semibold px-8 py-4 rounded-full text-base transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 animate-text-spring delay-300">
                     Join Foundera Today
+                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
                 </a>
             </div>
         </div>
@@ -309,7 +343,7 @@
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
             <div class="flex items-center mb-4 md:mb-0 gap-2">
                 <img src="images/founderaLogo.jpeg" alt="Foundera" class="w-9 h-9 rounded-lg object-cover">
-                <span class="text-2xl font-bold text-white tracking-tight">Foundera</span>
+                <span class="text-2xl logo-gradient tracking-tight">Foundera</span>
             </div>
             <div class="flex items-center space-x-6 text-sm">
                 <a href="blog.html" class="hover:text-white">Blog</a>

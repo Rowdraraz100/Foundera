@@ -2,15 +2,16 @@
         let currentTab = 'overview';
         let currentDataId = null; 
         
-        // --- PROFILE DATA (Ekhon eta kaj korbe ebong save hobe) ---
+        // --- PROFILE DATA (No demo defaults — only name/email from signup, rest filled manually) ---
         let profileData = {
-            name: localStorage.getItem('founderName') || 'Demo Founder',
-            email: localStorage.getItem('founderEmail') || 'founder@gmail.com',
-            linkedin: localStorage.getItem('founderLinkedin') || 'https://linkedin.com/in/demofounder',
-            github: localStorage.getItem('founderGithub') || 'https://github.com/demofounder',
-            bio: localStorage.getItem('founderBio') || 'Passionate about building scalable tech solutions for emerging markets. Background in software engineering and product management.',
-            skills: localStorage.getItem('founderSkills') || 'Product Strategy, System Architecture, UI/UX',
-            availability: localStorage.getItem('founderAvailability') || 'No, working on my own startup'
+            name: localStorage.getItem('founderName') || '',
+            email: localStorage.getItem('founderEmail') || '',
+            linkedin: localStorage.getItem('founderLinkedin') || '',
+            github: localStorage.getItem('founderGithub') || '',
+            bio: localStorage.getItem('founderBio') || '',
+            skills: localStorage.getItem('founderSkills') || '',
+            availability: localStorage.getItem('founderAvailability') || '',
+            picture: localStorage.getItem('founderPicture') || ''
         };
         
         // --- LOGOUT FUNCTION ---
@@ -39,6 +40,7 @@
             localStorage.setItem('founderBio', profileData.bio);
             localStorage.setItem('founderSkills', profileData.skills);
             localStorage.setItem('founderAvailability', profileData.availability);
+            localStorage.setItem('founderPicture', profileData.picture);
             
             // Also save to Firebase
             saveFounderProfileToFirebase();
@@ -48,6 +50,7 @@
         function saveFounderProfileToFirebase() {
             if (typeof firebase === 'undefined' || !firebase.database) return;
             var safeKey = profileData.email.replace(/[.#$\[\]]/g, '_');
+            if (!safeKey) return;
             var db = firebase.database();
             var founderData = {
                 name: profileData.name,
@@ -57,12 +60,100 @@
                 bio: profileData.bio,
                 skills: profileData.skills,
                 availability: profileData.availability,
+                picture: profileData.picture || '',
                 role: 'Founder',
                 profileUpdatedAt: new Date().toISOString()
             };
             db.ref('users/founders/' + safeKey).update(founderData)
                 .then(function() { console.log('Founder profile saved to Firebase'); })
                 .catch(function(e) { console.error('Firebase save error:', e); });
+        }
+
+        // --- LOAD FOUNDER PROFILE FROM FIREBASE ---
+        function loadFounderProfileFromFirebase() {
+            if (typeof firebase === 'undefined' || !firebase.database) return Promise.resolve();
+            var email = profileData.email || localStorage.getItem('founderEmail') || '';
+            if (!email) return Promise.resolve();
+            var safeKey = email.replace(/[.#$\[\]]/g, '_');
+            return firebase.database().ref('users/founders/' + safeKey).once('value').then(function(snap) {
+                var data = snap.val();
+                if (data) {
+                    profileData.name = data.name || profileData.name;
+                    profileData.email = data.email || profileData.email;
+                    profileData.linkedin = data.linkedin || '';
+                    profileData.github = data.github || '';
+                    profileData.bio = data.bio || '';
+                    profileData.skills = data.skills || '';
+                    profileData.availability = data.availability || '';
+                    profileData.picture = data.picture || '';
+                    // Sync to localStorage
+                    localStorage.setItem('founderName', profileData.name);
+                    localStorage.setItem('founderEmail', profileData.email);
+                    localStorage.setItem('founderLinkedin', profileData.linkedin);
+                    localStorage.setItem('founderGithub', profileData.github);
+                    localStorage.setItem('founderBio', profileData.bio);
+                    localStorage.setItem('founderSkills', profileData.skills);
+                    localStorage.setItem('founderAvailability', profileData.availability);
+                    localStorage.setItem('founderPicture', profileData.picture);
+                    // Update header avatar
+                    updateHeaderAvatar();
+                    console.log('Founder profile loaded from Firebase');
+                }
+            }).catch(function(e) { console.error('Firebase load error:', e); });
+        }
+
+        // --- UPDATE HEADER AVATAR (photo or initial) ---
+        function updateHeaderAvatar() {
+            var avatarEl = document.getElementById('header-avatar-container');
+            var initialEl = document.getElementById('user-initial');
+            if (profileData.picture) {
+                if (avatarEl) {
+                    avatarEl.innerHTML = '<img src="' + profileData.picture + '" alt="Profile" class="w-12 h-12 rounded-full object-cover border-2 border-blue-500/50">';
+                }
+            } else if (initialEl) {
+                initialEl.textContent = profileData.name ? profileData.name.charAt(0).toUpperCase() : 'F';
+            }
+        }
+
+        // --- HANDLE PROFILE PHOTO UPLOAD ---
+        function handleProfilePhotoUpload(input) {
+            if (!input.files || !input.files[0]) return;
+            var file = input.files[0];
+            // Validate file type
+            if (!file.type.match('image.*')) {
+                alert('Please select an image file (JPG, PNG, etc.)');
+                return;
+            }
+            // Validate file size (max 500KB for base64 in Realtime DB)
+            if (file.size > 512000) {
+                alert('Image size must be under 500KB. Please compress your image and try again.');
+                return;
+            }
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var base64 = e.target.result;
+                profileData.picture = base64;
+                localStorage.setItem('founderPicture', base64);
+                // Update profile photo preview
+                var preview = document.getElementById('profile-photo-preview');
+                if (preview) {
+                    preview.innerHTML = '<img src="' + base64 + '" alt="Profile" class="w-28 h-28 rounded-full object-cover">';
+                }
+                updateHeaderAvatar();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- REMOVE PROFILE PHOTO ---
+        function removeProfilePhoto() {
+            profileData.picture = '';
+            localStorage.removeItem('founderPicture');
+            var preview = document.getElementById('profile-photo-preview');
+            if (preview) {
+                var initial = profileData.name ? profileData.name.charAt(0).toUpperCase() : 'F';
+                preview.innerHTML = '<div class="w-28 h-28 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-4xl font-bold text-white">' + initial + '</div>';
+            }
+            updateHeaderAvatar();
         }
         
         // --- LOAD IDEAS FROM LOCALSTORAGE ---
@@ -76,6 +167,189 @@
         // --- SAVE IDEAS TO LOCALSTORAGE ---
         function saveIdeasToStorage() {
             localStorage.setItem('founderIdeas', JSON.stringify(ideas));
+        }
+
+        // --- SAVE IDEA TO FIREBASE REALTIME DB ---
+        function saveIdeaToFirebase(idea) {
+            if (typeof firebase === 'undefined' || !firebase.database) return;
+            var email = profileData.email || localStorage.getItem('founderEmail') || '';
+            if (!email) return;
+            var safeKey = email.replace(/[.#$\[\]]/g, '_');
+            var db = firebase.database();
+            
+            // Save full idea data under founder's profile
+            var ideaData = {
+                startupName: idea.title,
+                description: idea.description,
+                problem: idea.problem || '',
+                vision: idea.vision || '',
+                businessPlan: idea.businessPlan || '',
+                skillsNeeded: idea.skillsNeeded || [],
+                industry: idea.industry || '',
+                fundingNeeded: idea.fundingNeeded || 'Not Disclosed',
+                status: idea.status || 'Active',
+                postedAt: new Date().toISOString()
+            };
+            
+            // Update founder profile with startup info (visible to seekers/investors)
+            db.ref('users/founders/' + safeKey).update({
+                startupName: idea.title,
+                industry: idea.industry,
+                problem: idea.problem || '',
+                vision: idea.vision || '',
+                businessPlan: idea.businessPlan || '',
+                skillsNeeded: idea.skillsNeeded || [],
+                fundingNeeded: idea.fundingNeeded || 'Not Disclosed',
+                ideaDescription: idea.description,
+                ideaStatus: idea.status || 'Active',
+                ideaPostedAt: new Date().toISOString()
+            }).then(function() {
+                console.log('Idea saved to founder profile in Firebase');
+            }).catch(function(e) { console.error('Firebase idea save error:', e); });
+            
+            // Also save to separate global ideas node (for cross-platform queries)
+            db.ref('ideas/' + safeKey).set(ideaData)
+                .then(function() { console.log('Idea saved to global ideas node'); })
+                .catch(function(e) { console.error('Firebase global idea save error:', e); });
+        }
+
+        // --- DELETE IDEA FROM FIREBASE ---
+        function deleteIdeaFromFirebase() {
+            if (typeof firebase === 'undefined' || !firebase.database) return;
+            var email = profileData.email || localStorage.getItem('founderEmail') || '';
+            if (!email) return;
+            var safeKey = email.replace(/[.#$\[\]]/g, '_');
+            var db = firebase.database();
+            
+            // Remove idea fields from founder profile
+            db.ref('users/founders/' + safeKey).update({
+                startupName: null,
+                industry: null,
+                problem: null,
+                vision: null,
+                businessPlan: null,
+                skillsNeeded: null,
+                fundingNeeded: null,
+                ideaDescription: null,
+                ideaStatus: null,
+                ideaPostedAt: null
+            });
+            // Remove from global ideas node
+            db.ref('ideas/' + safeKey).remove();
+            console.log('Idea deleted from Firebase');
+        }
+
+        // --- LOAD IDEA FROM FIREBASE (on page load) ---
+        function loadIdeaFromFirebase() {
+            if (typeof firebase === 'undefined' || !firebase.database) return Promise.resolve();
+            var email = profileData.email || localStorage.getItem('founderEmail') || '';
+            if (!email) return Promise.resolve();
+            var safeKey = email.replace(/[.#$\[\]]/g, '_');
+            return firebase.database().ref('ideas/' + safeKey).once('value').then(function(snap) {
+                var data = snap.val();
+                if (data && data.startupName) {
+                    // Rebuild idea from Firebase
+                    var firebaseIdea = {
+                        id: Date.now(),
+                        title: data.startupName,
+                        description: data.description || '',
+                        problem: data.problem || '',
+                        vision: data.vision || '',
+                        businessPlan: data.businessPlan || '',
+                        skillsNeeded: Array.isArray(data.skillsNeeded) ? data.skillsNeeded : (data.skillsNeeded ? String(data.skillsNeeded).split(',').map(function(s){return s.trim();}) : []),
+                        industry: data.industry || '',
+                        fundingNeeded: data.fundingNeeded || 'Not Disclosed',
+                        status: data.status || 'Active',
+                        views: 0,
+                        applications: 0
+                    };
+                    // Only load if local is empty (Firebase is source of truth)
+                    if (ideas.length === 0) {
+                        ideas = [firebaseIdea];
+                        saveIdeasToStorage();
+                    }
+                    console.log('Idea loaded from Firebase: ' + firebaseIdea.title);
+                }
+            }).catch(function(e) { console.error('Firebase idea load error:', e); });
+        }
+
+        // --- AI SKILL MATCHING (Enhanced with free Gemini API) ---
+        let aiMatchCache = {};
+        
+        function getAISkillMatch(ideaSkills, talentSkills) {
+            // Local matching: exact + partial match scoring
+            var exactMatches = 0;
+            var partialMatches = 0;
+            var ideaLower = ideaSkills.map(function(s) { return s.toLowerCase().trim(); });
+            var talentLower = talentSkills.map(function(s) { return s.toLowerCase().trim(); });
+            
+            ideaLower.forEach(function(needed) {
+                talentLower.forEach(function(has) {
+                    if (needed === has) {
+                        exactMatches++;
+                    } else if (needed.includes(has) || has.includes(needed)) {
+                        partialMatches++;
+                    }
+                });
+            });
+            
+            // Weighted score: exact matches worth more
+            var totalNeeded = ideaSkills.length || 1;
+            var score = Math.round(((exactMatches * 1.0 + partialMatches * 0.5) / totalNeeded) * 100);
+            return Math.min(score, 100);
+        }
+
+        // Use free Gemini API for smart AI matching analysis
+        async function getGeminiAIMatches(idea, talentList) {
+            var cacheKey = idea.id + '_' + talentList.length;
+            if (aiMatchCache[cacheKey]) return aiMatchCache[cacheKey];
+            
+            // First do local matching
+            var localMatches = talentList.map(function(t) {
+                var score = getAISkillMatch(idea.skillsNeeded, t.skills);
+                return Object.assign({}, t, { matchScore: score, matchReason: 'Skill-based match' });
+            }).filter(function(t) { return t.matchScore > 0; }).sort(function(a,b) { return b.matchScore - a.matchScore; });
+            
+            // Try Gemini API for enhanced matching (free tier)
+            try {
+                var GEMINI_API_KEY = 'AIzaSyAHf2s0KF9BIeN-GqSsYydv5riqkiEz2ng';
+                var prompt = 'You are an AI startup talent matcher. A startup needs these skills: ' + idea.skillsNeeded.join(', ') + '. ' +
+                    'The startup is in ' + idea.industry + ' industry. ' +
+                    'Here are available candidates with their skills: ' + 
+                    localMatches.slice(0, 10).map(function(t, i) { return (i+1) + '. ' + t.name + ' - Skills: ' + t.skills.join(', '); }).join('; ') + '. ' +
+                    'Rate each candidate 0-100 for fit and give a one-line reason. Return ONLY valid JSON array like: [{"name":"...","score":85,"reason":"..."}]';
+                    
+                var response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
+                    })
+                });
+                var result = await response.json();
+                var text = result.candidates[0].content.parts[0].text;
+                // Extract JSON from response
+                var jsonMatch = text.match(/\[.*\]/s);
+                if (jsonMatch) {
+                    var aiResults = JSON.parse(jsonMatch[0]);
+                    // Merge AI scores with local matches
+                    localMatches = localMatches.map(function(t) {
+                        var aiMatch = aiResults.find(function(a) { return a.name === t.name; });
+                        if (aiMatch) {
+                            t.matchScore = Math.round((t.matchScore * 0.3 + aiMatch.score * 0.7));
+                            t.matchReason = aiMatch.reason || t.matchReason;
+                        }
+                        return t;
+                    }).sort(function(a,b) { return b.matchScore - a.matchScore; });
+                    console.log('Gemini AI matching completed successfully');
+                }
+            } catch(e) {
+                console.log('Gemini API unavailable, using local skill matching:', e.message);
+            }
+            
+            aiMatchCache[cacheKey] = localMatches;
+            return localMatches;
         }
         
         // Ideas array - will be loaded from localStorage
@@ -192,21 +466,21 @@
             const fd = new FormData(event.target);
             
             // Notun data gulo update kora hocche
-            profileData.name = fd.get('name');
-            profileData.email = fd.get('email');
-            profileData.linkedin = fd.get('linkedin');
-            profileData.github = fd.get('github');
-            profileData.bio = fd.get('bio');
-            profileData.skills = fd.get('skills');
+            profileData.name = fd.get('name') || '';
+            profileData.email = fd.get('email') || '';
+            profileData.linkedin = fd.get('linkedin') || '';
+            profileData.github = fd.get('github') || '';
+            profileData.bio = fd.get('bio') || '';
+            profileData.skills = fd.get('skills') || '';
             profileData.availability = fd.get('availability');
 
-            // Header a namer prothom okkhor (Letter) update korbe
-            document.getElementById('user-initial').textContent = profileData.name.charAt(0).toUpperCase();
+            // Header avatar update
+            updateHeaderAvatar();
 
-            // Save to localStorage
+            // Save to localStorage + Firebase
             saveProfileToStorage();
 
-            alert('Profile successfully updated! Ekhon theke user ra apnar notun contact details dekhte parbe.');
+            alert('Profile saved successfully! Your updated info is now visible to talents and investors.');
             
             // Re-render kore notun data gulo dekhabe
             renderContent();
@@ -241,13 +515,23 @@
             // Save to localStorage
             saveIdeasToStorage();
             
-            // Redirect directly to the Overview/Dashboard page for this new idea
+            // Save to Firebase Realtime Database
+            saveIdeaToFirebase(newIdea);
+            
+            // Update startup name display
+            updateStartupNameDisplay();
+            
+            alert('Your startup idea "' + newIdea.title + '" has been posted and saved to the database! Job seekers and investors can now see it.');
+            
+            // Redirect directly to the Overview/Dashboard page
             setTab('overview');
         }
 
         function deleteIdea(id) {
             ideas = ideas.filter(i => i.id !== id);
             saveIdeasToStorage();
+            deleteIdeaFromFirebase();
+            updateStartupNameDisplay();
             currentDataId = null;
             setTab('post'); // Redirect to post idea if they delete it
         }
@@ -257,7 +541,22 @@
             if(idea) {
                 idea.status = idea.status === 'Active' ? 'Draft' : 'Active';
                 saveIdeasToStorage();
+                saveIdeaToFirebase(idea);
                 renderContent();
+            }
+        }
+
+        // --- UPDATE STARTUP NAME DISPLAY ---
+        function updateStartupNameDisplay() {
+            var nameEl = document.getElementById('startup-name-display');
+            if (nameEl) {
+                if (ideas.length > 0 && ideas[0].title) {
+                    nameEl.innerHTML = '<i data-lucide="rocket" class="w-4 h-4 mr-1.5 text-blue-400"></i><span class="text-blue-300 font-medium text-sm truncate">' + ideas[0].title + '</span>';
+                    nameEl.classList.remove('hidden');
+                    lucide.createIcons();
+                } else {
+                    nameEl.classList.add('hidden');
+                }
             }
         }
 
@@ -470,13 +769,41 @@
             const idea = ideas.find(i => i.id === currentDataId);
             if(!idea) return `<p>Idea not found.</p>`;
 
-            // Simple Backend-ready AI Matching Logic
-            const matchedTalents = talents.map(t => {
-                const matchCount = t.skills.filter(s => idea.skillsNeeded.includes(s)).length;
-                return { ...t, matchScore: Math.round((matchCount / idea.skillsNeeded.length) * 100) || 0 };
+            // Enhanced AI Matching: local + Gemini
+            const matchedTalentsLocal = talents.map(t => {
+                const score = getAISkillMatch(idea.skillsNeeded, t.skills);
+                return { ...t, matchScore: score, matchReason: 'Skill-based match' };
             }).filter(t => t.matchScore > 0).sort((a,b) => b.matchScore - a.matchScore);
 
-            const matchedInvestors = investors.filter(i => i.focus.includes(idea.industry));
+            const matchedInvestors = investors.filter(i => i.focus.some(f => f.toLowerCase().includes(idea.industry.toLowerCase()) || idea.industry.toLowerCase().includes(f.toLowerCase())));
+
+            // Trigger async Gemini AI matching (will update UI when ready)
+            if (talents.length > 0) {
+                getGeminiAIMatches(idea, talents).then(function(aiMatches) {
+                    var container = document.getElementById('ai-talent-matches');
+                    if (container && aiMatches.length > 0) {
+                        container.innerHTML = aiMatches.map(function(t) {
+                            return '<div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700/50 hover:border-blue-500/50 transition-colors">' +
+                                '<div class="flex items-center justify-between">' +
+                                    '<div class="flex items-center">' +
+                                        '<div class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center font-bold mr-3 border border-gray-600">' + t.avatar + '</div>' +
+                                        '<div>' +
+                                            '<h5 class="font-bold text-sm text-white">' + t.name + '</h5>' +
+                                            '<p class="text-xs text-gray-400">' + t.role + '</p>' +
+                                        '</div>' +
+                                    '</div>' +
+                                    '<div class="text-right flex items-center gap-2">' +
+                                        '<span class="text-green-400 font-bold text-sm bg-green-500/10 px-2 py-1 rounded">' + t.matchScore + '%</span>' +
+                                        (t.email ? '<a href="mailto:' + t.email + '" class="text-xs text-blue-400 hover:text-blue-300 font-bold bg-blue-500/10 px-2 py-1 rounded" title="Email ' + t.name + '"><i data-lucide="mail" class="w-3 h-3 inline"></i></a>' : '') +
+                                    '</div>' +
+                                '</div>' +
+                                (t.matchReason ? '<p class="text-xs text-purple-300 mt-2 bg-purple-500/10 px-3 py-1.5 rounded-lg"><i data-lucide="sparkles" class="w-3 h-3 inline mr-1"></i>' + t.matchReason + '</p>' : '') +
+                            '</div>';
+                        }).join('');
+                        lucide.createIcons();
+                    }
+                });
+            }
 
             return `
                 <div class="space-y-6 animate-fade-in">
@@ -532,20 +859,23 @@
                                 <h4 class="font-bold text-lg mb-4 flex justify-between items-center text-white">
                                     Best Talent For This <span class="text-xs bg-gray-700 px-3 py-1 rounded-full text-gray-300">${matchedTalents.length} found</span>
                                 </h4>
-                                <div class="space-y-4">
-                                    ${matchedTalents.length > 0 ? matchedTalents.map(t => `
-                                        <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700/50 flex items-center justify-between hover:border-blue-500/50 transition-colors">
-                                            <div class="flex items-center">
-                                                <div class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center font-bold mr-3 border border-gray-600">${t.avatar}</div>
-                                                <div>
-                                                    <h5 class="font-bold text-sm text-white">${t.name}</h5>
-                                                    <p class="text-xs text-gray-400">${t.role}</p>
+                                <div id="ai-talent-matches" class="space-y-4">
+                                    ${matchedTalentsLocal.length > 0 ? matchedTalentsLocal.map(t => `
+                                        <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700/50 hover:border-blue-500/50 transition-colors">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center">
+                                                    <div class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center font-bold mr-3 border border-gray-600">${t.avatar}</div>
+                                                    <div>
+                                                        <h5 class="font-bold text-sm text-white">${t.name}</h5>
+                                                        <p class="text-xs text-gray-400">${t.role}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="text-right flex items-center gap-2">
+                                                    <span class="text-green-400 font-bold text-sm bg-green-500/10 px-2 py-1 rounded">${t.matchScore}%</span>
+                                                    ${t.email ? `<a href="mailto:${t.email}" class="text-xs text-blue-400 hover:text-blue-300 font-bold bg-blue-500/10 px-2 py-1 rounded" title="Email ${t.name}"><i data-lucide="mail" class="w-3 h-3 inline"></i></a>` : ''}
                                                 </div>
                                             </div>
-                                            <div class="text-right flex items-center gap-2">
-                                                <span class="text-green-400 font-bold text-sm bg-green-500/10 px-2 py-1 rounded">${t.matchScore}%</span>
-                                                ${t.email ? `<a href="mailto:${t.email}" class="text-xs text-blue-400 hover:text-blue-300 font-bold bg-blue-500/10 px-2 py-1 rounded" title="Email ${t.name}"><i data-lucide="mail" class="w-3 h-3 inline"></i></a>` : ''}
-                                            </div>
+                                            ${t.matchReason ? `<p class="text-xs text-purple-300 mt-2 bg-purple-500/10 px-3 py-1.5 rounded-lg"><i data-lucide="sparkles" class="w-3 h-3 inline mr-1"></i>${t.matchReason}</p>` : ''}
                                         </div>
                                     `).join('') : '<p class="text-sm text-gray-500 italic">No matching talent found yet. When job seekers join Foundera, matches will appear here.</p>'}
                                 </div>
@@ -776,28 +1106,58 @@
         }
 
         function renderProfile() {
+            var initial = profileData.name ? profileData.name.charAt(0).toUpperCase() : 'F';
+            var photoHTML = profileData.picture 
+                ? '<img src="' + profileData.picture + '" alt="Profile" class="w-28 h-28 rounded-full object-cover">'
+                : '<div class="w-28 h-28 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-4xl font-bold text-white">' + initial + '</div>';
+            
+            var headerPhotoHTML = profileData.picture
+                ? '<img src="' + profileData.picture + '" alt="Profile" class="w-24 h-24 rounded-full object-cover border-4 border-gray-800">'
+                : '<div class="w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-4xl font-bold shadow-xl border-4 border-gray-800 text-white">' + initial + '</div>';
+
+            // Social links — only show if filled
+            var socialBtns = '';
+            if (profileData.github) socialBtns += '<a href="' + profileData.github + '" target="_blank" class="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-xl text-sm font-bold transition flex items-center text-white border border-gray-600"><i data-lucide="github" class="w-4 h-4 mr-2"></i> GitHub</a>';
+            if (profileData.linkedin) socialBtns += '<a href="' + profileData.linkedin + '" target="_blank" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-bold transition flex items-center text-white"><i data-lucide="linkedin" class="w-4 h-4 mr-2"></i> LinkedIn</a>';
+            if (profileData.email) socialBtns += '<a href="mailto:' + profileData.email + '" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-xl text-sm font-bold transition flex items-center text-white shadow-lg shadow-red-500/20"><i data-lucide="mail" class="w-4 h-4 mr-2"></i> Email</a>';
+            if (!socialBtns) socialBtns = '<span class="text-gray-500 text-sm italic">Add your links below and save to see them here</span>';
+
             return `
                 <div class="max-w-4xl space-y-6 animate-fade-in">
                     <!-- Profile Header -->
                     <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-8 shadow-lg">
                         <div class="flex flex-col md:flex-row items-center gap-6">
                             <div class="relative group">
-                                <div class="w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-4xl font-bold shadow-xl border-4 border-gray-800 text-white">${profileData.name.charAt(0).toUpperCase()}</div>
-                                <button class="absolute bottom-0 right-0 p-2 bg-gray-700 rounded-full hover:bg-gray-600 transition shadow-lg border border-gray-600">
-                                    <i data-lucide="camera" class="w-4 h-4 text-white"></i>
-                                </button>
+                                ${headerPhotoHTML}
                             </div>
                             <div class="flex-1 text-center md:text-left">
-                                <h2 class="text-3xl font-bold mb-1 text-white">${profileData.name}</h2>
-                                <p class="text-blue-400 font-medium mb-3">Founder / Visionary</p>
-                                <div class="flex flex-wrap justify-center md:justify-start gap-2">
-                                    <span class="bg-gray-700 px-3 py-1 rounded-full text-xs text-gray-300 flex items-center border border-gray-600"><i data-lucide="map-pin" class="w-3 h-3 mr-1"></i> Dhaka, BD</span>
-                                </div>
+                                <h2 class="text-3xl font-bold mb-1 text-white">${profileData.name || '<span class="text-gray-500">Your Name</span>'}</h2>
+                                <p class="text-blue-400 font-medium mb-3">Founder</p>
+                                ${profileData.bio ? '<p class="text-gray-400 text-sm max-w-md">' + profileData.bio.substring(0, 120) + (profileData.bio.length > 120 ? '...' : '') + '</p>' : '<p class="text-gray-500 text-sm italic">No bio yet — add one below</p>'}
                             </div>
                             <div class="flex gap-3 flex-wrap justify-center">
-                                <a href="${profileData.github}" target="_blank" class="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-xl text-sm font-bold transition flex items-center text-white border border-gray-600"><i data-lucide="github" class="w-4 h-4 mr-2"></i> GitHub</a>
-                                <a href="${profileData.linkedin}" target="_blank" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-bold transition flex items-center text-white"><i data-lucide="linkedin" class="w-4 h-4 mr-2"></i> LinkedIn</a>
-                                <a href="mailto:${profileData.email}" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-xl text-sm font-bold transition flex items-center text-white shadow-lg shadow-red-500/20"><i data-lucide="mail" class="w-4 h-4 mr-2"></i> Gmail</a>
+                                ${socialBtns}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Photo Upload Section -->
+                    <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-8 shadow-lg">
+                        <div class="mb-6 border-b border-gray-700 pb-4">
+                            <h3 class="font-bold text-xl text-white flex items-center"><i data-lucide="camera" class="w-5 h-5 mr-2 text-blue-400"></i> Profile Photo</h3>
+                            <p class="text-sm text-gray-400 mt-1">Upload a photo (max 500KB, JPG/PNG). This will be saved to the database.</p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row items-center gap-6">
+                            <div id="profile-photo-preview" class="relative">
+                                ${photoHTML}
+                            </div>
+                            <div class="flex flex-col gap-3">
+                                <label class="cursor-pointer founder-btn text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/20 flex items-center hover:scale-105 transition-transform">
+                                    <i data-lucide="upload" class="w-5 h-5 mr-2"></i> Upload Photo
+                                    <input type="file" accept="image/*" onchange="handleProfilePhotoUpload(this)" class="hidden">
+                                </label>
+                                ${profileData.picture ? '<button onclick="removeProfilePhoto()" class="text-red-400 hover:text-red-300 text-sm font-medium flex items-center transition-colors"><i data-lucide="trash-2" class="w-4 h-4 mr-1"></i> Remove Photo</button>' : ''}
+                                <p class="text-gray-500 text-xs">Photo will be saved when you click "Save Changes"</p>
                             </div>
                         </div>
                     </div>
@@ -806,30 +1166,30 @@
                     <form onsubmit="saveProfile(event)" class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-8 shadow-lg">
                         <div class="mb-6 border-b border-gray-700 pb-4">
                             <h3 class="font-bold text-xl text-white">Update Profile</h3>
-                            <p class="text-sm text-gray-400 mt-1">Provide accurate details so talents and investors can easily connect with you.</p>
+                            <p class="text-sm text-gray-400 mt-1">Fill in your details. All information will be saved to the database when you click Save Changes.</p>
                         </div>
                         
                         <div class="grid md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-sm font-medium text-gray-400 mb-2">Full Name</label>
-                                <input type="text" name="name" value="${profileData.name}" required class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white">
+                                <input type="text" name="name" value="${profileData.name}" required placeholder="Enter your full name" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white placeholder-gray-600">
                             </div>
                             
                             <div class="md:col-span-2 mt-4">
-                                <h4 class="text-white font-bold flex items-center"><i data-lucide="link" class="w-5 h-5 mr-2 text-blue-400"></i> Contact Links (Important)</h4>
+                                <h4 class="text-white font-bold flex items-center"><i data-lucide="link" class="w-5 h-5 mr-2 text-blue-400"></i> Contact Links</h4>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-red-400 mb-2">Email Address (Main)</label>
-                                <input type="email" name="email" value="${profileData.email}" required class="w-full px-4 py-3 bg-gray-900 border border-red-500/50 rounded-xl focus:ring-2 focus:ring-red-500 outline-none text-white">
+                                <label class="block text-sm font-medium text-red-400 mb-2">Email Address</label>
+                                <input type="email" name="email" value="${profileData.email}" required placeholder="you@example.com" class="w-full px-4 py-3 bg-gray-900 border border-red-500/50 rounded-xl focus:ring-2 focus:ring-red-500 outline-none text-white placeholder-gray-600">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-blue-400 mb-2">LinkedIn Profile Link</label>
-                                <input type="url" name="linkedin" placeholder="https://linkedin.com/in/username" value="${profileData.linkedin}" class="w-full px-4 py-3 bg-gray-900 border border-blue-500/50 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white">
+                                <input type="url" name="linkedin" placeholder="https://linkedin.com/in/username" value="${profileData.linkedin}" class="w-full px-4 py-3 bg-gray-900 border border-blue-500/50 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white placeholder-gray-600">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-300 mb-2">GitHub Profile Link</label>
-                                <input type="url" name="github" placeholder="https://github.com/username" value="${profileData.github}" class="w-full px-4 py-3 bg-gray-900 border border-gray-500/50 rounded-xl focus:ring-2 focus:ring-gray-500 outline-none text-white">
+                                <input type="url" name="github" placeholder="https://github.com/username" value="${profileData.github}" class="w-full px-4 py-3 bg-gray-900 border border-gray-500/50 rounded-xl focus:ring-2 focus:ring-gray-500 outline-none text-white placeholder-gray-600">
                             </div>
 
                             <div class="md:col-span-2 mt-4">
@@ -838,15 +1198,16 @@
 
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-medium text-gray-400 mb-2">About You (Bio)</label>
-                                <textarea name="bio" rows="3" placeholder="Write a short bio about your experience and vision..." class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white">${profileData.bio}</textarea>
+                                <textarea name="bio" rows="3" placeholder="Write a short bio about your experience and vision..." class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white placeholder-gray-600">${profileData.bio}</textarea>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-400 mb-2">Skills & Expertise</label>
-                                <input type="text" name="skills" value="${profileData.skills}" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white">
+                                <input type="text" name="skills" value="${profileData.skills}" placeholder="e.g. Product Strategy, UI/UX, Marketing" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white placeholder-gray-600">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-400 mb-2">Available for Co-founding?</label>
                                 <select name="availability" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white">
+                                    <option value="" ${!profileData.availability ? 'selected' : ''} disabled>Select an option</option>
                                     <option value="Yes, actively looking" ${profileData.availability === 'Yes, actively looking' ? 'selected' : ''}>Yes, actively looking</option>
                                     <option value="No, working on my own startup" ${profileData.availability === 'No, working on my own startup' ? 'selected' : ''}>No, working on my own startup</option>
                                 </select>
@@ -985,19 +1346,28 @@
         // Load ideas from localStorage first
         loadIdeasFromStorage();
         
-        // Set user initial from profile name
-        document.getElementById('user-initial').textContent = profileData.name.charAt(0).toUpperCase();
-        
-        // Check if user is logged in (has name in localStorage), if not redirect to index
-        if (!localStorage.getItem('founderName')) {
-            // Allow demo access but show default name
+        // Check if user is logged in
+        if (!localStorage.getItem('founderName') && !localStorage.getItem('founderEmail')) {
+            window.location.href = 'index.html';
         }
         
-        // Load real data from Firebase (investors + job seekers)
-        loadFirebaseData();
-        
-        // Ekhon login/page load korar sathe sathe 'overview' tab e jabe
-        setTab('overview');
+        // Load profile + idea from Firebase first, then render
+        Promise.all([
+            loadFounderProfileFromFirebase(),
+            loadIdeaFromFirebase()
+        ]).then(function() {
+            updateHeaderAvatar();
+            updateStartupNameDisplay();
+            // Load real data from Firebase (investors + job seekers)
+            loadFirebaseData();
+            // Go to overview tab
+            setTab('overview');
+        }).catch(function() {
+            updateHeaderAvatar();
+            updateStartupNameDisplay();
+            loadFirebaseData();
+            setTab('overview');
+        });
         
         lucide.createIcons();
 

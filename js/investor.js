@@ -34,32 +34,44 @@
                         var f = data[key];
                         startupList.push({
                             id: idx,
-                            name: f.startupName || f.name + "'s Startup",
+                            name: f.startupName || '',
                             founder: f.name || 'Unknown',
+                            picture: f.picture || '',
                             industry: f.industry || 'General',
                             stage: f.stage || 'Pre-Seed',
                             raising: f.fundingNeeded || 'Not Disclosed',
                             valuation: f.valuation || 'Not Disclosed',
-                            description: f.bio || 'No description provided.',
+                            description: f.ideaDescription || f.bio || '',
                             problem: f.problem || '',
                             vision: f.vision || '',
                             businessPlan: f.businessPlan || '',
+                            skillsNeeded: Array.isArray(f.skillsNeeded) ? f.skillsNeeded : (f.skillsNeeded ? String(f.skillsNeeded).split(',').map(function(s){return s.trim();}) : []),
                             linkedin: f.linkedin || '',
+                            github: f.github || '',
                             email: f.email || '',
+                            bio: f.bio || '',
+                            hasIdea: !!f.startupName,
                             matchScore: Math.floor(Math.random() * 40) + 60
                         });
                         foundersList.push({
                             id: idx,
                             name: f.name || 'Unknown',
-                            startup: f.startupName || f.name + "'s Startup",
+                            startup: f.startupName || '',
                             industry: f.industry || 'General',
                             stage: f.stage || 'Pre-Seed',
-                            bio: f.bio || 'Founder on Foundera platform.',
+                            bio: f.bio || '',
+                            picture: f.picture || '',
                             problem: f.problem || '',
                             vision: f.vision || '',
+                            businessPlan: f.businessPlan || '',
+                            description: f.ideaDescription || '',
+                            skillsNeeded: Array.isArray(f.skillsNeeded) ? f.skillsNeeded : (f.skillsNeeded ? String(f.skillsNeeded).split(',').map(function(s){return s.trim();}) : []),
+                            fundingNeeded: f.fundingNeeded || '',
                             linkedin: f.linkedin || '',
+                            github: f.github || '',
                             email: f.email || '',
-                            requirements: f.skills ? f.skills.split(',').map(function(s) { return s.trim(); }) : ['Team Members']
+                            hasIdea: !!f.startupName,
+                            requirements: f.skills ? f.skills.split(',').map(function(s) { return s.trim(); }) : (Array.isArray(f.skillsNeeded) ? f.skillsNeeded : [])
                         });
                         idx++;
                     });
@@ -370,20 +382,27 @@
                                     <!-- Left Column: Founder & Basic Info -->
                                     <div class="lg:w-1/3 space-y-6">
                                         <div class="flex items-start gap-4">
-                                            <div class="w-16 h-16 bg-gray-900 rounded-2xl border border-gray-700 flex items-center justify-center font-bold text-2xl text-indigo-400 shadow-inner">
-                                                ${startup.founder[0]}
-                                            </div>
+                                            ${startup.picture 
+                                                ? '<img src="' + startup.picture + '" class="w-16 h-16 rounded-2xl object-cover border border-gray-700 shadow-inner">'
+                                                : '<div class="w-16 h-16 bg-gray-900 rounded-2xl border border-gray-700 flex items-center justify-center font-bold text-2xl text-indigo-400 shadow-inner">' + startup.founder[0] + '</div>'
+                                            }
                                             <div>
                                                 <h3 class="text-xl font-bold text-white">${startup.founder}</h3>
-                                                <p class="text-sm text-indigo-400 font-medium">Founder @ ${startup.name}</p>
+                                                ${startup.hasIdea 
+                                                    ? '<p class="text-sm text-indigo-400 font-medium">Founder @ ' + startup.name + '</p>'
+                                                    : '<p class="text-sm text-gray-400 italic">No startup posted yet</p>'
+                                                }
                                                 <div class="flex gap-2 mt-2">
-                                                    <a href="${startup.linkedin}" target="_blank" class="p-1.5 bg-gray-700 rounded text-gray-300 hover:text-white transition" title="LinkedIn"><i data-lucide="linkedin" class="w-4 h-4"></i></a>
-                                                    <a href="mailto:${startup.email}" class="p-1.5 bg-gray-700 rounded text-gray-300 hover:text-white transition" title="Email"><i data-lucide="mail" class="w-4 h-4"></i></a>
+                                                    ${startup.linkedin ? '<a href="' + startup.linkedin + '" target="_blank" class="p-1.5 bg-gray-700 rounded text-gray-300 hover:text-white transition" title="LinkedIn"><i data-lucide="linkedin" class="w-4 h-4"></i></a>' : ''}
+                                                    ${startup.github ? '<a href="' + startup.github + '" target="_blank" class="p-1.5 bg-gray-700 rounded text-gray-300 hover:text-white transition" title="GitHub"><i data-lucide="github" class="w-4 h-4"></i></a>' : ''}
+                                                    ${startup.email ? '<a href="mailto:' + startup.email + '" class="p-1.5 bg-gray-700 rounded text-gray-300 hover:text-white transition" title="Email"><i data-lucide="mail" class="w-4 h-4"></i></a>' : ''}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+                                        ${startup.bio ? '<p class="text-gray-300 text-sm leading-relaxed">' + startup.bio + '</p>' : ''}
+
+                                        ${startup.hasIdea ? `<div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
                                             <div class="grid grid-cols-2 gap-4 text-sm">
                                                 <div>
                                                     <span class="block text-gray-500 text-xs uppercase tracking-wider mb-1">Industry</span>
@@ -402,10 +421,12 @@
                                                     <span class="font-medium text-white">${startup.valuation}</span>
                                                 </div>
                                             </div>
-                                        </div>
+                                        </div>` : ''}
+
+                                        ${startup.skillsNeeded && startup.skillsNeeded.length > 0 ? '<div class="bg-gray-900/50 rounded-xl p-4 border border-gray-700"><p class="text-xs text-gray-400 mb-2 font-bold uppercase tracking-wider">Skills Needed:</p><div class="flex flex-wrap gap-2">' + startup.skillsNeeded.map(function(s){ return '<span class="bg-indigo-500/15 text-indigo-300 text-xs px-2.5 py-1 rounded-lg border border-indigo-500/30">' + s + '</span>'; }).join('') + '</div></div>' : ''}
 
                                         <div class="flex gap-3">
-                                            <button onclick="requestPitch(${startup.id})" class="flex-1 invest-btn text-white py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20">Contact Founder</button>
+                                            ${startup.email ? '<button onclick="requestPitch(' + startup.id + ')" class="flex-1 invest-btn text-white py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20">Contact Founder</button>' : ''}
                                             <button onclick="toggleWatchlist(${startup.id})" class="p-2.5 border border-gray-600 rounded-xl hover:bg-gray-700 transition text-gray-400 flex items-center justify-center" title="Save to Watchlist">
                                                 <i data-lucide="heart" class="w-5 h-5 ${isSaved ? 'fill-red-400 text-red-400' : ''}"></i>
                                             </button>
@@ -413,7 +434,12 @@
                                     </div>
 
                                     <!-- Right Column: Detailed Idea -->
-                                    <div class="lg:w-2/3 border-t lg:border-t-0 lg:border-l border-gray-700/50 pt-6 lg:pt-0 lg:pl-8 space-y-6">
+                                    ${startup.hasIdea ? `<div class="lg:w-2/3 border-t lg:border-t-0 lg:border-l border-gray-700/50 pt-6 lg:pt-0 lg:pl-8 space-y-6">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <span class="bg-green-500/20 text-green-400 text-xs px-3 py-1 rounded-full font-medium border border-green-500/30">Active Startup</span>
+                                        </div>
+                                        <h4 class="text-2xl font-bold text-white mb-2">${startup.name}</h4>
+                                        ${startup.description ? '<p class="text-gray-300 text-sm leading-relaxed">' + startup.description + '</p>' : ''}
                                         <div>
                                             <h4 class="text-white font-bold text-lg mb-2 flex items-center"><i data-lucide="alert-triangle" class="w-5 h-5 text-red-400 mr-2"></i> The Problem</h4>
                                             <p class="text-gray-300 text-sm leading-relaxed">${startup.problem || 'No problem statement provided.'}</p>
@@ -426,7 +452,12 @@
                                             <h4 class="text-white font-bold text-lg mb-2 flex items-center"><i data-lucide="briefcase" class="w-5 h-5 text-purple-400 mr-2"></i> Business Plan & Revenue Model</h4>
                                             <p class="text-gray-300 text-sm leading-relaxed">${startup.businessPlan || 'No business plan detailed yet.'}</p>
                                         </div>
-                                    </div>
+                                    </div>` : `<div class="lg:w-2/3 border-t lg:border-t-0 lg:border-l border-gray-700/50 pt-6 lg:pt-0 lg:pl-8 flex items-center justify-center">
+                                        <div class="text-center py-8">
+                                            <i data-lucide="file-question" class="w-12 h-12 text-gray-600 mx-auto mb-3"></i>
+                                            <p class="text-gray-500 text-sm">This founder hasn't shared their startup idea yet.</p>
+                                        </div>
+                                    </div>`}
                                 </div>
                             </div>
                         `}).join('')}

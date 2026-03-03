@@ -49,10 +49,12 @@
         <!-- Sidebar -->
         <aside id="sidebar" class="sidebar w-64 bg-gray-800/50 backdrop-blur-xl min-h-screen fixed left-0 top-0 border-r border-gray-700/50 z-50 transition-transform duration-300">
             <div class="p-6">
-                <a href="index.html" class="flex items-center gap-3 mb-8 cursor-pointer hover:opacity-80 transition-opacity">
+                <a href="index.html" class="flex items-center gap-3 mb-4 cursor-pointer hover:opacity-80 transition-opacity">
                     <img src="images/founderaLogo.jpeg" alt="Foundera" class="w-10 h-10 rounded-xl object-cover shadow-lg shadow-blue-500/30">
                     <span class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Foundera</span>
                 </a>
+                <!-- Startup Name Display (visible after posting idea) -->
+                <div id="startup-name-display" class="hidden mb-4 px-3 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center"></div>
                 
                 <!-- Main CTA in Sidebar -->
                 <button id="sidebar-share-btn" onclick="setTab('post')" class="w-full mb-6 btn-highlight text-white px-4 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2">
@@ -106,8 +108,10 @@
                         <i data-lucide="bell" class="w-5 h-5"></i>
                         <span class="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full"></span>
                     </button>
-                    <div onclick="setTab('profile')" class="cursor-pointer w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-lg font-bold shadow-lg">
-                        <span id="user-initial">D</span>
+                    <div id="header-avatar-container" onclick="setTab('profile')" class="cursor-pointer w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold shadow-lg overflow-hidden">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-lg font-bold">
+                            <span id="user-initial">F</span>
+                        </div>
                     </div>
                 </div>
             </header>

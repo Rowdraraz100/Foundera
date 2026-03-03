@@ -20,16 +20,16 @@
     </div>
 
     <!-- Navigation -->
-    <nav class="bg-[#1a0b2e] sticky top-0 z-50 border-b border-white/10">
+    <nav class="nav-glass nav-animated sticky top-0 z-50 border-b border-white/10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <a href="index.html" class="flex items-center cursor-pointer gap-2">
                 <img src="images/founderaLogo.jpeg" alt="Foundera" class="w-9 h-9 rounded-lg object-cover">
-                <span class="text-2xl font-bold text-white tracking-tight">Foundera</span>
+                <span class="text-2xl logo-gradient tracking-tight">Foundera</span>
             </a>
             <div class="hidden md:flex items-center space-x-6">
-                <a href="blog.html" class="text-gray-300 hover:text-white font-medium text-sm transition-colors">Blog</a>
-                <a href="success-stories.html" class="text-white font-medium text-sm transition-colors">Success Stories</a>
-                <a href="about-us.html" class="text-gray-300 hover:text-white font-medium text-sm transition-colors">About Us</a>
+                <a href="blog.html" class="nav-link-animated text-gray-300 hover:text-white font-medium text-sm transition-colors">Blog</a>
+                <a href="success-stories.html" class="nav-link-animated text-white font-medium text-sm transition-colors">Success Stories</a>
+                <a href="about-us.html" class="nav-link-animated text-gray-300 hover:text-white font-medium text-sm transition-colors">About Us</a>
             </div>
             <button class="md:hidden flex flex-col justify-center items-center w-10 h-10 rounded-lg bg-white/10 border border-white/20" onclick="toggleMobileNav()">
                 <span class="block w-5 h-0.5 bg-white mb-1"></span><span class="block w-5 h-0.5 bg-white mb-1"></span><span class="block w-5 h-0.5 bg-white"></span>
@@ -41,226 +41,31 @@
         </div>
     </nav>
 
-    <!-- Hero Section -->
-    <section class="bg-[#1a0b2e] py-20 px-6 relative overflow-hidden">
-        <div class="absolute top-1/4 right-1/4 w-64 h-64 bg-emerald-700/20 rounded-full blur-[80px]"></div>
-        <div class="absolute bottom-1/4 left-1/4 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl"></div>
-        <div class="max-w-4xl mx-auto text-center relative z-10">
-            <h1 class="text-5xl md:text-6xl font-extrabold text-white mb-6 animate-text-spring">
-                Success <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Stories</span>
-            </h1>
-            <p class="text-xl text-gray-400 max-w-2xl mx-auto animate-text-spring delay-100">
-                Real stories from founders, job seekers, and investors who found success on Foundera.
-            </p>
-        </div>
-    </section>
-
-    <!-- Stats Section -->
-    <section class="bg-gradient-to-b from-[#1a0b2e] to-[#1E1B4B] py-16 px-6">
-        <div class="max-w-5xl mx-auto">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-                <div class="text-center animate-slide-up">
-                    <div class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-violet-400">500+</div>
-                    <p class="text-gray-400 mt-2">Startups Launched</p>
-                </div>
-                <div class="text-center animate-slide-up delay-100">
-                    <div class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">$25M+</div>
-                    <p class="text-gray-400 mt-2">Funding Raised</p>
-                </div>
-                <div class="text-center animate-slide-up delay-200">
-                    <div class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-400">2,000+</div>
-                    <p class="text-gray-400 mt-2">Jobs Created</p>
-                </div>
-                <div class="text-center animate-slide-up delay-300">
-                    <div class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">150+</div>
-                    <p class="text-gray-400 mt-2">Investors Matched</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Featured Success Story -->
-    <section class="bg-[#1E1B4B] py-20 px-6 relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
-        <div class="max-w-6xl mx-auto relative z-10">
-            <div class="glass-card rounded-[40px] p-8 md:p-16 animate-slide-up">
-                <div class="flex flex-col md:flex-row gap-12 items-center">
-                    <div class="md:w-1/3">
-                        <div class="w-48 h-48 mx-auto bg-gradient-to-br from-purple-500 to-violet-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-purple-500/30 transform hover:scale-105 transition-transform">
-                            <i data-lucide="sparkles" class="text-white w-24 h-24"></i>
-                        </div>
-                    </div>
-                    <div class="md:w-2/3 text-center md:text-left">
-                        <span class="bg-purple-500/20 text-purple-400 text-xs font-bold px-4 py-2 rounded-full">Featured Story</span>
-                        <h2 class="text-3xl md:text-4xl font-bold text-white mt-6 mb-4">Krishi-AI: From Idea to $2M Funding in 8 Months</h2>
-                        <p class="text-gray-400 text-lg mb-6 leading-relaxed">
-                            "I had the idea for an AI-powered farming assistant but lacked a technical co-founder. Within weeks of joining Foundera, I found Anik, an incredible full-stack developer. Three months later, we had our MVP. By month eight, we closed our seed round with investors we met right here on the platform."
-                        </p>
-                        <div class="flex items-center justify-center md:justify-start space-x-4">
-                            <div class="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xl">R</div>
-                            <div>
-                                <p class="text-white font-bold">Rahim Uddin</p>
-                                <p class="text-gray-500 text-sm">Founder & CEO, Krishi-AI</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Success Stories Grid -->
-    <section class="bg-gradient-to-b from-[#1E1B4B] to-[#1a0b2e] py-20 px-6">
-        <div class="max-w-7xl mx-auto">
-            <h2 class="text-3xl md:text-4xl font-bold text-white text-center mb-16">More Success Stories</h2>
-            
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Story 1 - Job Seeker -->
-                <div class="glass-card rounded-3xl p-8 hover:bg-white/10 transition-all duration-300 group animate-slide-up">
-                    <div class="flex items-center mb-6">
-                        <div class="w-16 h-16 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mr-4">N</div>
-                        <div>
-                            <h3 class="text-white font-bold">Nusrat Jahan</h3>
-                            <p class="text-cyan-400 text-sm">UI/UX Designer</p>
-                        </div>
-                    </div>
-                    <div class="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-4 mb-6">
-                        <p class="text-cyan-300 text-sm font-medium">Job Seeker → Dream Job</p>
-                    </div>
-                    <p class="text-gray-400 mb-6">
-                        "After months of applying to traditional job boards with no luck, I found Foundera. Within two weeks, I was interviewing with three exciting startups. Now I'm the lead designer at FinSheba!"
-                    </p>
-                    <div class="flex items-center text-gray-500 text-sm">
-                        <i data-lucide="calendar" class="w-4 h-4 mr-2"></i>
-                        Joined March 2025
-                    </div>
-                </div>
-
-                <!-- Story 2 - Investor -->
-                <div class="glass-card rounded-3xl p-8 hover:bg-white/10 transition-all duration-300 group animate-slide-up delay-100">
-                    <div class="flex items-center mb-6">
-                        <div class="w-16 h-16 bg-gradient-to-br from-emerald-400 to-green-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mr-4">V</div>
-                        <div>
-                            <h3 class="text-white font-bold">Venture BD</h3>
-                            <p class="text-emerald-400 text-sm">Early-Stage VC</p>
-                        </div>
-                    </div>
-                    <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 mb-6">
-                        <p class="text-emerald-300 text-sm font-medium">Investor → 8 Successful Deals</p>
-                    </div>
-                    <p class="text-gray-400 mb-6">
-                        "Foundera transformed our deal flow. The quality of startups here is exceptional. We've invested in 8 companies through the platform, and 3 have already hit their Series A milestones."
-                    </p>
-                    <div class="flex items-center text-gray-500 text-sm">
-                        <i data-lucide="trending-up" class="w-4 h-4 mr-2"></i>
-                        $5M+ Invested via Foundera
-                    </div>
-                </div>
-
-                <!-- Story 3 - Founder -->
-                <div class="glass-card rounded-3xl p-8 hover:bg-white/10 transition-all duration-300 group animate-slide-up delay-200">
-                    <div class="flex items-center mb-6">
-                        <div class="w-16 h-16 bg-gradient-to-br from-purple-400 to-violet-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mr-4">S</div>
-                        <div>
-                            <h3 class="text-white font-bold">Sadia Rahman</h3>
-                            <p class="text-purple-400 text-sm">Founder, FinSheba</p>
-                        </div>
-                    </div>
-                    <div class="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 mb-6">
-                        <p class="text-purple-300 text-sm font-medium">Idea → Funded Startup</p>
-                    </div>
-                    <p class="text-gray-400 mb-6">
-                        "I was a solo non-technical founder with a vision. Foundera helped me build a team of 5 amazing people and secure $100K in seed funding. We're now serving 50,000+ users in rural Bangladesh."
-                    </p>
-                    <div class="flex items-center text-gray-500 text-sm">
-                        <i data-lucide="users" class="w-4 h-4 mr-2"></i>
-                        Team of 12 & Growing
-                    </div>
-                </div>
-
-                <!-- Story 4 -->
-                <div class="glass-card rounded-3xl p-8 hover:bg-white/10 transition-all duration-300 group animate-slide-up delay-300">
-                    <div class="flex items-center mb-6">
-                        <div class="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mr-4">A</div>
-                        <div>
-                            <h3 class="text-white font-bold">Anik Hasan</h3>
-                            <p class="text-amber-400 text-sm">CTO, Krishi-AI</p>
-                        </div>
-                    </div>
-                    <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-6">
-                        <p class="text-amber-300 text-sm font-medium">Developer → Co-Founder</p>
-                    </div>
-                    <p class="text-gray-400 mb-6">
-                        "I was looking for meaningful work, not just another job. On Foundera, I found Rahim and his incredible vision. Now I'm CTO with equity in a company that's changing agriculture."
-                    </p>
-                    <div class="flex items-center text-gray-500 text-sm">
-                        <i data-lucide="rocket" class="w-4 h-4 mr-2"></i>
-                        From Employee to Co-Founder
-                    </div>
-                </div>
-
-                <!-- Story 5 -->
-                <div class="glass-card rounded-3xl p-8 hover:bg-white/10 transition-all duration-300 group animate-slide-up delay-400">
-                    <div class="flex items-center mb-6">
-                        <div class="w-16 h-16 bg-gradient-to-br from-pink-400 to-rose-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mr-4">M</div>
-                        <div>
-                            <h3 class="text-white font-bold">Minhaz Khan</h3>
-                            <p class="text-pink-400 text-sm">Founder, EduBridge</p>
-                        </div>
-                    </div>
-                    <div class="bg-pink-500/10 border border-pink-500/20 rounded-xl p-4 mb-6">
-                        <p class="text-pink-300 text-sm font-medium">First-time Founder → EdTech Leader</p>
-                    </div>
-                    <p class="text-gray-400 mb-6">
-                        "As a first-time founder, I had no network. Foundera gave me access to mentors, teammates, and investors I never could have reached otherwise. EduBridge now reaches 100K+ students."
-                    </p>
-                    <div class="flex items-center text-gray-500 text-sm">
-                        <i data-lucide="graduation-cap" class="w-4 h-4 mr-2"></i>
-                        100K+ Students Impacted
-                    </div>
-                </div>
-
-                <!-- Story 6 -->
-                <div class="glass-card rounded-3xl p-8 hover:bg-white/10 transition-all duration-300 group animate-slide-up delay-500">
-                    <div class="flex items-center mb-6">
-                        <div class="w-16 h-16 bg-gradient-to-br from-indigo-400 to-blue-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mr-4">G</div>
-                        <div>
-                            <h3 class="text-white font-bold">Global Seed Fund</h3>
-                            <p class="text-indigo-400 text-sm">Seed-Stage Investor</p>
-                        </div>
-                    </div>
-                    <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 mb-6">
-                        <p class="text-indigo-300 text-sm font-medium">Global VC → Local Impact</p>
-                    </div>
-                    <p class="text-gray-400 mb-6">
-                        "Foundera opened doors to emerging market startups we couldn't access before. The platform's vetting and matching system saved us countless hours of due diligence."
-                    </p>
-                    <div class="flex items-center text-gray-500 text-sm">
-                        <i data-lucide="globe" class="w-4 h-4 mr-2"></i>
-                        Investing Across 5 Countries
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- CTA Section -->
-    <section class="bg-[#1a0b2e] py-20 px-6 relative overflow-hidden">
+    <!-- CTA Section — Write Your Success Story -->
+    <section class="bg-[#1a0b2e] min-h-[80vh] flex items-center py-24 px-6 relative overflow-hidden">
         <div class="absolute inset-0 overflow-hidden">
-            <div class="absolute top-1/2 left-1/2 w-[600px] h-[600px] -translate-x-1/2 -translate-y-1/2">
-                <div class="absolute inset-0 bg-gradient-to-r from-purple-600/30 via-violet-500/20 to-transparent rounded-full blur-[100px]"></div>
+            <div class="absolute top-1/2 left-1/2 w-[700px] h-[700px] -translate-x-1/2 -translate-y-1/2">
+                <div class="absolute inset-0 bg-gradient-to-r from-purple-600/30 via-violet-500/20 to-transparent rounded-full blur-[120px]"></div>
             </div>
+            <div class="absolute top-1/4 right-1/4 w-64 h-64 bg-emerald-700/15 rounded-full blur-[80px]"></div>
+            <div class="absolute bottom-1/4 left-1/4 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl"></div>
         </div>
         <div class="max-w-4xl mx-auto text-center relative z-10">
-            <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">Write Your Success Story</h2>
-            <p class="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
+            <div class="inline-flex items-center gap-2 bg-purple-500/15 border border-purple-500/30 rounded-full px-5 py-2 mb-8 animate-text-spring">
+                <i data-lucide="pen-tool" class="w-4 h-4 text-purple-400"></i>
+                <span class="text-purple-300 text-sm font-semibold">Share Your Journey</span>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-extrabold text-white mb-8 animate-text-spring delay-100">
+                Write Your <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400">Success Story</span>
+            </h1>
+            <p class="text-xl md:text-2xl text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed animate-text-spring delay-200">
                 Join thousands of founders, job seekers, and investors who are building the future together on Foundera.
             </p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="index.html" class="bg-[#7c3aed] hover:bg-[#8b5cf6] text-white font-medium px-8 py-4 rounded-full text-lg transition-colors shadow-lg shadow-purple-500/30">
+            <div class="flex flex-col sm:flex-row gap-4 justify-center animate-text-spring delay-300">
+                <a href="index.html#signup" class="bg-[#7c3aed] hover:bg-[#8b5cf6] text-white font-semibold px-10 py-4 rounded-full text-lg transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105">
                     Get Started Free
                 </a>
-                <a href="blog.html" class="bg-white/10 hover:bg-white/20 text-white font-medium px-8 py-4 rounded-full text-lg transition-colors border border-white/20">
+                <a href="blog.html" class="bg-white/10 hover:bg-white/20 text-white font-medium px-10 py-4 rounded-full text-lg transition-all border border-white/20 hover:border-white/40">
                     Read Our Blog
                 </a>
             </div>
@@ -272,7 +77,7 @@
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
             <div class="flex items-center mb-4 md:mb-0 gap-2">
                 <img src="images/founderaLogo.jpeg" alt="Foundera" class="w-9 h-9 rounded-lg object-cover">
-                <span class="text-2xl font-bold text-white tracking-tight">Foundera</span>
+                <span class="text-2xl logo-gradient tracking-tight">Foundera</span>
             </div>
             <div class="flex items-center space-x-6 text-sm">
                 <a href="blog.html" class="hover:text-white">Blog</a>

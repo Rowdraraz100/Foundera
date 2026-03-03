@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Foundera - Careers</title>
+    <link rel="icon" type="image/jpeg" href="images/founderaLogo.jpeg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/common.css">
+</head>
+<body class="bg-[#1a0b2e] text-gray-900">
+
+    <!-- Preloader -->
+    <div id="foundera-preloader">
+        <div class="preloader-glow"></div>
+        <img src="images/founderaLogo.jpeg" alt="Foundera" class="preloader-logo">
+        <div class="preloader-text">Foundera</div>
+        <div class="preloader-bar-container"><div class="preloader-bar"></div></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav-glass nav-animated sticky top-0 z-50 border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <a href="index.html" class="flex items-center cursor-pointer gap-2">
+                <img src="images/founderaLogo.jpeg" alt="Foundera" class="w-9 h-9 rounded-lg object-cover">
+                <span class="text-2xl logo-gradient tracking-tight">Foundera</span>
+            </a>
+            <div class="hidden md:flex items-center space-x-6">
+                <a href="blog.html" class="nav-link-animated text-gray-300 hover:text-white font-medium text-sm transition-colors">Blog</a>
+                <a href="success-stories.html" class="nav-link-animated text-gray-300 hover:text-white font-medium text-sm transition-colors">Success Stories</a>
+                <a href="about-us.html" class="nav-link-animated text-gray-300 hover:text-white font-medium text-sm transition-colors">About Us</a>
+            </div>
+            <button class="md:hidden flex flex-col justify-center items-center w-10 h-10 rounded-lg bg-white/10 border border-white/20" onclick="toggleMobileNav()">
+                <span class="block w-5 h-0.5 bg-white mb-1"></span><span class="block w-5 h-0.5 bg-white mb-1"></span><span class="block w-5 h-0.5 bg-white"></span>
+            </button>
+            <div class="hidden md:flex items-center space-x-3">
+                <a href="index.html#login" class="text-gray-300 hover:text-white font-medium px-3 py-2 text-sm transition-colors">Log in</a>
+                <a href="index.html#signup" class="bg-[#7c3aed] hover:bg-[#8b5cf6] text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors">Sign up for free</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="bg-[#1a0b2e] py-24 px-6 relative overflow-hidden">
+        <div class="absolute top-1/4 left-1/4 w-72 h-72 bg-purple-700/20 rounded-full blur-[100px]"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-56 h-56 bg-cyan-500/10 rounded-full blur-3xl"></div>
+        <div class="max-w-4xl mx-auto text-center relative z-10">
+            <div class="inline-flex items-center gap-2 bg-purple-500/15 border border-purple-500/30 rounded-full px-5 py-2 mb-8 animate-text-spring">
+                <i data-lucide="users" class="w-4 h-4 text-purple-400"></i>
+                <span class="text-purple-300 text-sm font-semibold">We're Hiring</span>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-extrabold text-white mb-6 animate-text-spring delay-100" style="font-family: 'Space Grotesk', sans-serif;">
+                Join <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400">Foundera</span> Today
+            </h1>
+            <p class="text-xl md:text-2xl text-gray-400 max-w-2xl mx-auto animate-text-spring delay-200 leading-relaxed">
+                Help us build the world's first integrated platform for founders, job seekers, and investors. Be part of something revolutionary.
+            </p>
+        </div>
+    </section>
+
+    <!-- Why Join Foundera -->
+    <section class="bg-gradient-to-b from-[#1a0b2e] to-[#1E1B4B] py-20 px-6">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-3xl md:text-4xl font-bold text-white text-center mb-14 animate-slide-up">Why Work With Us?</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="glass-card rounded-2xl p-8 text-center hover:bg-white/10 transition-all duration-300 animate-slide-up">
+                    <div class="w-14 h-14 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center mx-auto mb-5">
+                        <i data-lucide="rocket" class="text-white w-7 h-7"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Early-Stage Impact</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Join at the ground floor. Your work will directly shape the product used by thousands of founders and investors.</p>
+                </div>
+                <div class="glass-card rounded-2xl p-8 text-center hover:bg-white/10 transition-all duration-300 animate-slide-up delay-100">
+                    <div class="w-14 h-14 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-5">
+                        <i data-lucide="code-2" class="text-white w-7 h-7"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Modern Tech Stack</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Work with cutting-edge technologies including AI/ML, real-time systems, and cloud-native architecture.</p>
+                </div>
+                <div class="glass-card rounded-2xl p-8 text-center hover:bg-white/10 transition-all duration-300 animate-slide-up delay-200">
+                    <div class="w-14 h-14 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center mx-auto mb-5">
+                        <i data-lucide="heart" class="text-white w-7 h-7"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Remote-First Culture</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Work from anywhere. We care about results, not where you sit. Flexible hours, async-friendly environment.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Open Positions -->
+    <section class="bg-[#1E1B4B] py-24 px-6 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
+        <div class="max-w-5xl mx-auto relative z-10">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-5xl font-bold text-white mb-4">Open Positions</h2>
+                <p class="text-gray-400 text-lg">Find your perfect role and help us shape the future of startups</p>
+            </div>
+
+            <div class="space-y-6">
+
+                <!-- Position 1 -->
+                <div class="glass-card rounded-2xl p-8 hover:bg-white/10 transition-all duration-300 group animate-slide-up border border-white/5 hover:border-purple-500/30">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="text-2xl font-bold text-white">Full Stack Developer</h3>
+                                <span class="bg-green-500/15 text-green-400 text-xs font-semibold px-3 py-1 rounded-full">Active</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3 text-sm text-gray-400">
+                                <span class="flex items-center gap-1"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i> Remote</span>
+                                <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Full-time</span>
+                                <span class="flex items-center gap-1"><i data-lucide="briefcase" class="w-3.5 h-3.5"></i> Engineering</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-300 mb-6 leading-relaxed">
+                        We're looking for a skilled Full Stack Developer to help build and scale Foundera's core platform. You'll work on everything from our real-time dashboard systems to AI-powered matching algorithms. Experience with React, Node.js, Firebase, and Tailwind CSS is highly preferred.
+                    </p>
+                    <div class="mb-6">
+                        <h4 class="text-white font-semibold text-sm mb-3">Requirements:</h4>
+                        <ul class="text-gray-400 text-sm space-y-2">
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0"></i> 2+ years experience with React.js and Node.js</li>
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0"></i> Proficiency in Firebase (Auth, Firestore, Realtime DB)</li>
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0"></i> Strong UI skills with Tailwind CSS or similar frameworks</li>
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0"></i> Experience with REST APIs and real-time data systems</li>
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0"></i> Passion for startups and building impactful products</li>
+                        </ul>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <span class="bg-purple-500/10 text-purple-300 text-xs px-3 py-1.5 rounded-lg border border-purple-500/20">React.js</span>
+                        <span class="bg-purple-500/10 text-purple-300 text-xs px-3 py-1.5 rounded-lg border border-purple-500/20">Node.js</span>
+                        <span class="bg-purple-500/10 text-purple-300 text-xs px-3 py-1.5 rounded-lg border border-purple-500/20">Firebase</span>
+                        <span class="bg-purple-500/10 text-purple-300 text-xs px-3 py-1.5 rounded-lg border border-purple-500/20">Tailwind CSS</span>
+                        <span class="bg-purple-500/10 text-purple-300 text-xs px-3 py-1.5 rounded-lg border border-purple-500/20">JavaScript</span>
+                    </div>
+                </div>
+
+                <!-- Position 2 -->
+                <div class="glass-card rounded-2xl p-8 hover:bg-white/10 transition-all duration-300 group animate-slide-up delay-100 border border-white/5 hover:border-cyan-500/30">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="text-2xl font-bold text-white">UI/UX Designer</h3>
+                                <span class="bg-green-500/15 text-green-400 text-xs font-semibold px-3 py-1 rounded-full">Active</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3 text-sm text-gray-400">
+                                <span class="flex items-center gap-1"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i> Remote</span>
+                                <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Full-time</span>
+                                <span class="flex items-center gap-1"><i data-lucide="palette" class="w-3.5 h-3.5"></i> Design</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-300 mb-6 leading-relaxed">
+                        Join us as a UI/UX Designer to craft beautiful, intuitive experiences across Foundera's web and mobile platforms. You'll design dashboards for founders, job seekers, and investors — each requiring unique flows and delightful interactions.
+                    </p>
+                    <div class="mb-6">
+                        <h4 class="text-white font-semibold text-sm mb-3">Requirements:</h4>
+                        <ul class="text-gray-400 text-sm space-y-2">
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0"></i> 2+ years experience in product/UI design</li>
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0"></i> Expert in Figma, with strong prototyping skills</li>
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0"></i> Understanding of design systems and component libraries</li>
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0"></i> Ability to translate complex workflows into simple interfaces</li>
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0"></i> Portfolio showcasing dashboard or SaaS product design</li>
+                        </ul>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <span class="bg-cyan-500/10 text-cyan-300 text-xs px-3 py-1.5 rounded-lg border border-cyan-500/20">Figma</span>
+                        <span class="bg-cyan-500/10 text-cyan-300 text-xs px-3 py-1.5 rounded-lg border border-cyan-500/20">UI Design</span>
+                        <span class="bg-cyan-500/10 text-cyan-300 text-xs px-3 py-1.5 rounded-lg border border-cyan-500/20">UX Research</span>
+                        <span class="bg-cyan-500/10 text-cyan-300 text-xs px-3 py-1.5 rounded-lg border border-cyan-500/20">Prototyping</span>
+                    </div>
+                </div>
+
+                <!-- Position 3 -->
+                <div class="glass-card rounded-2xl p-8 hover:bg-white/10 transition-all duration-300 group animate-slide-up delay-200 border border-white/5 hover:border-emerald-500/30">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="text-2xl font-bold text-white">Marketing & Growth Lead</h3>
+                                <span class="bg-green-500/15 text-green-400 text-xs font-semibold px-3 py-1 rounded-full">Active</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3 text-sm text-gray-400">
+                                <span class="flex items-center gap-1"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i> Remote</span>
+                                <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Full-time</span>
+                                <span class="flex items-center gap-1"><i data-lucide="megaphone" class="w-3.5 h-3.5"></i> Marketing</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-300 mb-6 leading-relaxed">
+                        We need a creative Marketing & Growth Lead to drive user acquisition, build our brand, and grow Foundera's community of founders, talent, and investors globally. You'll own our social media, content strategy, and growth campaigns.
+                    </p>
+                    <div class="mb-6">
+                        <h4 class="text-white font-semibold text-sm mb-3">Requirements:</h4>
+                        <ul class="text-gray-400 text-sm space-y-2">
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0"></i> 2+ years in digital marketing or growth roles</li>
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0"></i> Experience with social media marketing and content creation</li>
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0"></i> Understanding of startup ecosystems and community building</li>
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0"></i> Data-driven mindset with analytics experience</li>
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0"></i> Excellent written and verbal communication skills</li>
+                        </ul>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <span class="bg-emerald-500/10 text-emerald-300 text-xs px-3 py-1.5 rounded-lg border border-emerald-500/20">Social Media</span>
+                        <span class="bg-emerald-500/10 text-emerald-300 text-xs px-3 py-1.5 rounded-lg border border-emerald-500/20">Content Strategy</span>
+                        <span class="bg-emerald-500/10 text-emerald-300 text-xs px-3 py-1.5 rounded-lg border border-emerald-500/20">SEO</span>
+                        <span class="bg-emerald-500/10 text-emerald-300 text-xs px-3 py-1.5 rounded-lg border border-emerald-500/20">Analytics</span>
+                    </div>
+                </div>
+
+                <!-- Position 4 -->
+                <div class="glass-card rounded-2xl p-8 hover:bg-white/10 transition-all duration-300 group animate-slide-up delay-300 border border-white/5 hover:border-amber-500/30">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="text-2xl font-bold text-white">AI/ML Engineer</h3>
+                                <span class="bg-amber-500/15 text-amber-400 text-xs font-semibold px-3 py-1 rounded-full">Coming Soon</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3 text-sm text-gray-400">
+                                <span class="flex items-center gap-1"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i> Remote</span>
+                                <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Full-time</span>
+                                <span class="flex items-center gap-1"><i data-lucide="cpu" class="w-3.5 h-3.5"></i> AI / ML</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-300 mb-6 leading-relaxed">
+                        Help us build intelligent matching algorithms, AI-powered roadmap generators, and smart recommendation systems that connect the right founders with the right talent and investors. This role will be central to Foundera's core value proposition.
+                    </p>
+                    <div class="mb-6">
+                        <h4 class="text-white font-semibold text-sm mb-3">Requirements:</h4>
+                        <ul class="text-gray-400 text-sm space-y-2">
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0"></i> Strong background in Machine Learning and NLP</li>
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0"></i> Experience with Python, TensorFlow/PyTorch</li>
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0"></i> Understanding of recommendation systems</li>
+                            <li class="flex items-start gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0"></i> Experience with LLMs and prompt engineering is a plus</li>
+                        </ul>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <span class="bg-amber-500/10 text-amber-300 text-xs px-3 py-1.5 rounded-lg border border-amber-500/20">Python</span>
+                        <span class="bg-amber-500/10 text-amber-300 text-xs px-3 py-1.5 rounded-lg border border-amber-500/20">TensorFlow</span>
+                        <span class="bg-amber-500/10 text-amber-300 text-xs px-3 py-1.5 rounded-lg border border-amber-500/20">NLP</span>
+                        <span class="bg-amber-500/10 text-amber-300 text-xs px-3 py-1.5 rounded-lg border border-amber-500/20">LLMs</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- How to Apply -->
+    <section class="bg-gradient-to-b from-[#1E1B4B] to-[#1a0b2e] py-24 px-6 relative overflow-hidden">
+        <div class="absolute bottom-0 left-1/4 w-72 h-72 bg-purple-600/10 rounded-full blur-[100px]"></div>
+        <div class="max-w-4xl mx-auto relative z-10">
+            <div class="glass-card rounded-[40px] p-10 md:p-16 text-center border border-purple-500/20">
+                <div class="w-20 h-20 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-purple-500/30 animate-float" style="animation-duration: 4s;">
+                    <i data-lucide="send" class="text-white w-9 h-9"></i>
+                </div>
+                <h2 class="text-3xl md:text-5xl font-bold text-white mb-6" style="font-family: 'Space Grotesk', sans-serif;">Ready to Apply?</h2>
+                <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-4 leading-relaxed">
+                    Send your CV/Resume and a short cover letter to the email below. Tell us which role interests you and why you'd be a great fit for Foundera.
+                </p>
+
+                <!-- Email Card -->
+                <div class="inline-block bg-gradient-to-r from-purple-500/15 to-violet-500/15 border border-purple-500/30 rounded-2xl px-8 py-6 mt-6 mb-8">
+                    <p class="text-gray-400 text-sm mb-2">Send your CV to:</p>
+                    <a href="mailto:rowdrarazofficial2002@gmail.com" class="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 hover:opacity-80 transition-opacity break-all" style="font-family: 'Orbitron', monospace; letter-spacing: 0.5px;">
+                        rowdrarazofficial2002@gmail.com
+                    </a>
+                </div>
+
+                <div class="space-y-4 text-left max-w-lg mx-auto mb-10">
+                    <h4 class="text-white font-semibold text-center mb-4">What to Include:</h4>
+                    <div class="flex items-start gap-3 text-gray-300 text-sm">
+                        <i data-lucide="file-text" class="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0"></i>
+                        <span>Your updated <strong class="text-white">CV/Resume</strong> (PDF preferred)</span>
+                    </div>
+                    <div class="flex items-start gap-3 text-gray-300 text-sm">
+                        <i data-lucide="pen-tool" class="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0"></i>
+                        <span>A short <strong class="text-white">cover letter</strong> explaining why you want to join</span>
+                    </div>
+                    <div class="flex items-start gap-3 text-gray-300 text-sm">
+                        <i data-lucide="link" class="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0"></i>
+                        <span>Your <strong class="text-white">portfolio/GitHub</strong> link (if applicable)</span>
+                    </div>
+                    <div class="flex items-start gap-3 text-gray-300 text-sm">
+                        <i data-lucide="tag" class="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0"></i>
+                        <span>Subject line: <strong class="text-white">"Foundera Application — [Role Name]"</strong></span>
+                    </div>
+                </div>
+
+                <a href="https://mail.google.com/mail/?view=cm&to=rowdrarazofficial2002@gmail.com&su=Foundera%20Application" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-[#7c3aed] hover:bg-[#8b5cf6] text-white font-semibold px-10 py-4 rounded-full text-lg transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105">
+                    <i data-lucide="mail" class="w-5 h-5"></i>
+                    Send Your Application
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-400 py-12 px-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center mb-4 md:mb-0 gap-2">
+                <img src="images/founderaLogo.jpeg" alt="Foundera" class="w-9 h-9 rounded-lg object-cover">
+                <span class="text-2xl logo-gradient tracking-tight">Foundera</span>
+            </div>
+            <div class="flex items-center space-x-6 text-sm">
+                <a href="blog.html" class="hover:text-white">Blog</a>
+                <a href="success-stories.html" class="hover:text-white">Success Stories</a>
+                <a href="about-us.html" class="hover:text-white">About Us</a>
+            </div>
+            <p class="text-sm mt-4 md:mt-0">&copy; 2026 Foundera Inc. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>lucide.createIcons();</script>
+    <script src="js/navbar.js"></script>
+    <script src="js/preloader.js"></script>
+</body>
+</html>
