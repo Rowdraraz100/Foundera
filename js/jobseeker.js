@@ -414,10 +414,11 @@
 
         // --- VIEWS ---
         function renderOverview() {
+            var firstName = profileData.name ? profileData.name.split(' ')[0] : 'there';
             return `
                 <div class="space-y-6">
                     <div class="bg-gradient-to-r from-gray-800 to-green-900/40 rounded-2xl p-8 border border-green-500/30 shadow-lg">
-                        <h2 class="text-3xl font-bold mb-2 text-white">Welcome back, ${profileData.name.split(' ')[0]}!</h2>
+                        <h2 class="text-3xl font-bold mb-2 text-white">Welcome back, ${firstName}!</h2>
                         <p class="text-green-100 mb-6 max-w-2xl text-lg">Keep your profile updated and check your AI matches to land your next big startup role.</p>
                         <div class="flex flex-wrap gap-4">
                             <button onclick="setTab('jobs')" class="btn-highlight-green text-white px-8 py-3 rounded-xl font-bold flex items-center shadow-lg w-max">
@@ -467,21 +468,21 @@
                         </div>
                         <div class="px-8 pb-8 relative">
                             <div class="absolute -top-16 left-8 w-32 h-32 bg-gray-900 rounded-full border-4 border-gray-800 flex items-center justify-center text-5xl font-bold text-green-400 shadow-xl">
-                                ${profileData.name.charAt(0).toUpperCase()}
+                                ${profileData.name ? profileData.name.charAt(0).toUpperCase() : 'S'}
                                 <div class="absolute bottom-0 right-0 bg-gray-700 p-2 rounded-full cursor-pointer hover:bg-gray-600 text-white"><i data-lucide="camera" class="w-4 h-4"></i></div>
                             </div>
                             <div class="flex justify-end mt-4">
                                 <button onclick="openModal('basic-info-modal')" class="p-2 hover:bg-gray-700 rounded-full transition"><i data-lucide="pencil" class="w-5 h-5 text-gray-400"></i></button>
                             </div>
                             <div class="mt-2">
-                                <h1 class="text-2xl font-bold text-white">${profileData.name}</h1>
-                                <p class="text-gray-300 text-lg mt-1">${profileData.title}</p>
-                                <p class="text-gray-500 text-sm mt-2 flex items-center"><i data-lucide="map-pin" class="w-4 h-4 mr-1"></i> ${profileData.location}</p>
+                                <h1 class="text-2xl font-bold text-white">${profileData.name || 'Your Name'}</h1>
+                                <p class="text-gray-300 text-lg mt-1">${profileData.title || '<span class="text-gray-500 italic">Add your headline</span>'}</p>
+                                <p class="text-gray-500 text-sm mt-2 flex items-center"><i data-lucide="map-pin" class="w-4 h-4 mr-1"></i> ${profileData.location || 'Add location'}</p>
                                 
                                 <div class="flex flex-wrap gap-3 mt-5">
                                     <a href="mailto:${profileData.email}" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-bold transition flex items-center text-white"><i data-lucide="mail" class="w-4 h-4 mr-2"></i> Contact Info</a>
-                                    <a href="${profileData.linkedin}" target="_blank" class="bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30 px-4 py-2 rounded-lg text-sm font-bold transition flex items-center"><i data-lucide="linkedin" class="w-4 h-4 mr-2"></i> LinkedIn</a>
-                                    <a href="${profileData.github}" target="_blank" class="bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-bold transition flex items-center"><i data-lucide="github" class="w-4 h-4 mr-2"></i> GitHub</a>
+                                    ${profileData.linkedin ? '<a href="' + profileData.linkedin + '" target="_blank" class="bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30 px-4 py-2 rounded-lg text-sm font-bold transition flex items-center"><i data-lucide="linkedin" class="w-4 h-4 mr-2"></i> LinkedIn</a>' : ''}
+                                    ${profileData.github ? '<a href="' + profileData.github + '" target="_blank" class="bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-bold transition flex items-center"><i data-lucide="github" class="w-4 h-4 mr-2"></i> GitHub</a>' : ''}
                                 </div>
                             </div>
                         </div>
@@ -493,7 +494,7 @@
                             <h2 class="text-xl font-bold text-white">About</h2>
                             <button onclick="openModal('basic-info-modal')" class="p-2 hover:bg-gray-700 rounded-full transition"><i data-lucide="pencil" class="w-5 h-5 text-gray-400"></i></button>
                         </div>
-                        <p class="text-gray-300 text-sm leading-relaxed whitespace-pre-line">${profileData.bio}</p>
+                        <p class="text-gray-300 text-sm leading-relaxed whitespace-pre-line">${profileData.bio || '<span class="text-gray-500 italic">Click the edit button to add your bio and tell founders about yourself.</span>'}</p>
                     </div>
 
                     <!-- 3. Experience Card -->
@@ -826,7 +827,7 @@
                                         (founder.problem ? '<div><h5 class="text-white font-bold text-sm mb-1 flex items-center"><i data-lucide="alert-circle" class="w-4 h-4 text-red-400 mr-2"></i> Problem Statement</h5><p class="text-gray-400 text-sm leading-relaxed">' + founder.problem + '</p></div>' : '') +
                                         (founder.vision ? '<div><h5 class="text-white font-bold text-sm mb-1 flex items-center"><i data-lucide="eye" class="w-4 h-4 text-blue-400 mr-2"></i> Vision & Mission</h5><p class="text-gray-400 text-sm leading-relaxed">' + founder.vision + '</p></div>' : '') +
                                         (founder.businessPlan ? '<div><h5 class="text-white font-bold text-sm mb-1 flex items-center"><i data-lucide="briefcase" class="w-4 h-4 text-purple-400 mr-2"></i> Business Plan</h5><p class="text-gray-400 text-sm leading-relaxed">' + founder.businessPlan + '</p></div>' : '') +
-                                    '</div>' : '<div class="lg:w-2/3 border-t lg:border-t-0 lg:border-l border-gray-700/50 pt-6 lg:pt-0 lg:pl-8 flex items-center justify-center"><div class="text-center py-8"><i data-lucide="file-question" class="w-12 h-12 text-gray-600 mx-auto mb-3"></i><p class="text-gray-500 text-sm">This founder hasn\\'t shared their startup idea yet.</p></div></div>'}
+                                    '</div>' : '<div class="lg:w-2/3 border-t lg:border-t-0 lg:border-l border-gray-700/50 pt-6 lg:pt-0 lg:pl-8 flex items-center justify-center"><div class="text-center py-8"><i data-lucide="file-question" class="w-12 h-12 text-gray-600 mx-auto mb-3"></i><p class="text-gray-500 text-sm">This founder has not shared their startup idea yet.</p></div></div>'}
                                 </div>
                             </div>
                         `).join('')}
@@ -1027,34 +1028,43 @@
         if (!localStorage.getItem('seekerName') && !localStorage.getItem('seekerEmail')) {
             window.location.href = 'index.html';
         }
-        // Load from localStorage
-        document.getElementById('user-initial').textContent = profileData.name.charAt(0).toUpperCase();
+
+        // Load from localStorage — set user initial safely
+        var displayInitial = profileData.name ? profileData.name.charAt(0).toUpperCase() : 'S';
+        document.getElementById('user-initial').textContent = displayInitial;
         
-        // Load saved applications and saved jobs from localStorage
-        const savedApplications = localStorage.getItem('seekerApplications');
-        if (savedApplications) {
-            userApplications = JSON.parse(savedApplications);
-        }
-        const savedSavedJobs = localStorage.getItem('seekerSavedJobs');
-        if (savedSavedJobs) {
-            savedJobIds = JSON.parse(savedSavedJobs);
-        }
+        // Load saved applications and saved jobs from localStorage (with error handling)
+        try {
+            var savedApplications = localStorage.getItem('seekerApplications');
+            if (savedApplications) { userApplications = JSON.parse(savedApplications); }
+        } catch(e) { console.warn('Failed to parse seekerApplications:', e); userApplications = []; }
+        
+        try {
+            var savedSavedJobs = localStorage.getItem('seekerSavedJobs');
+            if (savedSavedJobs) { savedJobIds = JSON.parse(savedSavedJobs); }
+        } catch(e) { console.warn('Failed to parse seekerSavedJobs:', e); savedJobIds = []; }
         
         // Update badge count
-        const appBadge = document.getElementById('app-count-badge');
+        var appBadge = document.getElementById('app-count-badge');
         if (appBadge) appBadge.textContent = userApplications.length;
         
-        // Load profile and founders data from Firebase
+        // RENDER IMMEDIATELY with localStorage data — don't wait for Firebase
+        setTab('overview');
+        
+        // Then load fresh data from Firebase and re-render
         Promise.all([
             loadJobseekerProfileFromFirebase(),
             fetchFoundersFromFirebase()
         ]).then(function() {
-            setTab('overview');
-        }).catch(function() {
-            setTab('overview');
+            // Re-render with updated Firebase data
+            var initEl = document.getElementById('user-initial');
+            if (initEl) initEl.textContent = profileData.name ? profileData.name.charAt(0).toUpperCase() : 'S';
+            renderContent();
+        }).catch(function(err) {
+            console.warn('Firebase load error (dashboard still works with local data):', err);
         });
         
-        lucide.createIcons();
+        if (typeof lucide !== 'undefined') { lucide.createIcons(); }
 
         window.addEventListener('load', function() {
             setTimeout(function() {

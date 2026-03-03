@@ -235,6 +235,62 @@ function redirectToDashboard(name, email, role) {
     }
 }
 
+/* --- LOGIN ROLE SELECTION (when user is in Auth but not in DB) --- */
+function showLoginRoleSelection(name, email) {
+    var m = document.createElement('div');
+    m.id = 'login-role-modal';
+    m.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100]';
+    m.innerHTML =
+        '<div class="bg-[#1E1B4B] rounded-3xl p-8 max-w-md w-full mx-4 border border-white/10 shadow-2xl animate-text-spring">' +
+            '<div class="text-center mb-6">' +
+                '<h2 class="text-2xl font-bold text-white mb-1">Welcome, ' + name + '!</h2>' +
+                '<p class="text-gray-400 text-sm">' + email + '</p>' +
+            '</div>' +
+            '<p class="text-gray-300 text-center mb-6">Please select your role to continue:</p>' +
+            '<div class="space-y-3">' +
+                '<button onclick="completeLoginRoleSelection(\'' + name.replace(/'/g, "\\'") + '\',\'' + email.replace(/'/g, "\\'") + '\',\'Founder\')" class="w-full bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white font-medium py-4 rounded-xl flex items-center justify-center gap-3 transition-all shadow-lg shadow-purple-500/20">I\'m a Founder</button>' +
+                '<button onclick="completeLoginRoleSelection(\'' + name.replace(/'/g, "\\'") + '\',\'' + email.replace(/'/g, "\\'") + '\',\'Job Seeker\')" class="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-medium py-4 rounded-xl flex items-center justify-center gap-3 transition-all shadow-lg shadow-cyan-500/20">I\'m a Job Seeker</button>' +
+                '<button onclick="completeLoginRoleSelection(\'' + name.replace(/'/g, "\\'") + '\',\'' + email.replace(/'/g, "\\'") + '\',\'Investor\')" class="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-medium py-4 rounded-xl flex items-center justify-center gap-3 transition-all shadow-lg shadow-emerald-500/20">I\'m an Investor</button>' +
+            '</div>' +
+        '</div>';
+    document.body.appendChild(m);
+}
+
+function completeLoginRoleSelection(name, email, role) {
+    var m = document.getElementById('login-role-modal');
+    if (m) m.remove();
+    saveUserToFirebase({ name: name, email: email, role: role, picture: '', signupMethod: 'email', emailVerified: true }).then(function() {
+        localStorage.removeItem('pendingSignup');
+        state.currentUser = { name: name, email: email, role: role };
+        showToast('Welcome, ' + name + '!', 'success');
+        redirectToDashboard(name, email, role);
+    }).catch(function() {
+        // Even if DB save fails, redirect the user
+        state.currentUser = { name: name, email: email, role: role };
+        redirectToDashboard(name, email, role);
+    });
+}
+
+/* --- ROLE LOOKUP HELPER (checks each folder individually) --- */
+function lookupUserRole(email) {
+    if (typeof firebase === 'undefined' || !firebase.database) return Promise.resolve(null);
+    var db = firebase.database();
+    var safeKey = email.replace(/[.#$\[\]]/g, '_');
+    return Promise.all([
+        db.ref('users/founders/' + safeKey).once('value'),
+        db.ref('users/jobseekers/' + safeKey).once('value'),
+        db.ref('users/investors/' + safeKey).once('value')
+    ]).then(function(results) {
+        var founderData = results[0].val();
+        var seekerData = results[1].val();
+        var investorData = results[2].val();
+        if (founderData) return { user: founderData, role: 'Founder' };
+        if (seekerData) return { user: seekerData, role: 'Job Seeker' };
+        if (investorData) return { user: investorData, role: 'Investor' };
+        return null;
+    });
+}
+
 /* --- EMAIL VERIFICATION SCREEN --- */
 var verificationPollTimer = null;
 
@@ -356,17 +412,15 @@ function handleAuth(event, type) {
                 if (pending) {
                     try { var pData = JSON.parse(pending); if (pData.email === email) { pendName = pData.name; pendRole = pData.role; } } catch(e) {}
                 }
-                // Also check DB for user info
-                var safeKey = email.replace(/[.#$\[\]]/g, '_');
-                firebase.database().ref('users').once('value').then(function(snap) {
-                    var data = snap.val();
-                    if (data) {
-                        if (data.founders && data.founders[safeKey]) { pendName = data.founders[safeKey].name; pendRole = 'Founder'; }
-                        else if (data.jobseekers && data.jobseekers[safeKey]) { pendName = data.jobseekers[safeKey].name; pendRole = 'Job Seeker'; }
-                        else if (data.investors && data.investors[safeKey]) { pendName = data.investors[safeKey].name; pendRole = 'Investor'; }
-                    }
+                // Check DB for user info using individual lookups
+                lookupUserRole(email).then(function(result) {
+                    if (result) { pendName = result.user.name; pendRole = result.role; }
                     showToast('Please verify your email before logging in. Check your inbox!', 'warning');
-                    // Resend verification email
+                    user.sendEmailVerification().catch(function(){});
+                    showVerificationScreen(user, pendName, email, pendRole);
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Sign In'; }
+                }).catch(function() {
+                    showToast('Please verify your email before logging in. Check your inbox!', 'warning');
                     user.sendEmailVerification().catch(function(){});
                     showVerificationScreen(user, pendName, email, pendRole);
                     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Sign In'; }
@@ -377,32 +431,42 @@ function handleAuth(event, type) {
             // Email is verified — proceed with login
             var safeKey = email.replace(/[.#$\[\]]/g, '_');
             var db = firebase.database();
-            db.ref('users').once('value').then(function (snap) {
-                var data = snap.val(), foundUser = null, foundRole = null;
-                if (data) {
-                    if (data.founders && data.founders[safeKey])   { foundUser = data.founders[safeKey];   foundRole = 'Founder'; }
-                    if (data.jobseekers && data.jobseekers[safeKey]) { foundUser = data.jobseekers[safeKey]; foundRole = 'Job Seeker'; }
-                    if (data.investors && data.investors[safeKey])  { foundUser = data.investors[safeKey];  foundRole = 'Investor'; }
-                }
-                if (foundUser) {
-                    // User found — login and redirect
+            lookupUserRole(email).then(function(result) {
+                if (result) {
+                    // User found in DB — login and redirect to correct dashboard
+                    var foundUser = result.user;
+                    var foundRole = result.role;
                     var rf = foundRole === 'Founder' ? 'founders' : foundRole === 'Job Seeker' ? 'jobseekers' : 'investors';
                     db.ref('users/' + rf + '/' + safeKey).update({ lastLogin: new Date().toISOString(), emailVerified: true });
                     state.currentUser = { name: foundUser.name, email: foundUser.email, role: foundRole };
                     showToast('Welcome back, ' + foundUser.name + '!', 'success');
                     redirectToDashboard(foundUser.name, foundUser.email, foundRole);
                 } else {
-                    // User in Auth but not in DB — save and redirect
+                    // User in Auth but not in DB — check pendingSignup for role info
                     var pending = localStorage.getItem('pendingSignup');
-                    var pendName = name, pendRole = role;
-                    if (pending) { try { var pData = JSON.parse(pending); if (pData.email === email) { pendName = pData.name; pendRole = pData.role; } } catch(e) {} }
-                    saveUserToFirebase({ name: pendName, email: email, role: pendRole, picture: '', signupMethod: 'email', emailVerified: true }).then(function() {
-                        localStorage.removeItem('pendingSignup');
-                        state.currentUser = { name: pendName, email: email, role: pendRole };
-                        showToast('Welcome, ' + pendName + '!', 'success');
-                        redirectToDashboard(pendName, email, pendRole);
-                    });
+                    var pendName = user.displayName || name, pendRole = null;
+                    if (pending) {
+                        try { var pData = JSON.parse(pending); if (pData.email === email) { pendName = pData.name; pendRole = pData.role; } } catch(e) {}
+                    }
+                    if (pendRole) {
+                        // We know the role from pending signup data
+                        saveUserToFirebase({ name: pendName, email: email, role: pendRole, picture: '', signupMethod: 'email', emailVerified: true }).then(function() {
+                            localStorage.removeItem('pendingSignup');
+                            state.currentUser = { name: pendName, email: email, role: pendRole };
+                            showToast('Welcome, ' + pendName + '!', 'success');
+                            redirectToDashboard(pendName, email, pendRole);
+                        });
+                    } else {
+                        // No role info available — show role selection
+                        showToast('Please select your role to continue.', 'info');
+                        showLoginRoleSelection(pendName, email);
+                        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Sign In'; }
+                    }
                 }
+            }).catch(function(err) {
+                console.error('Role lookup failed:', err);
+                showToast('Login failed. Could not retrieve your data. Please try again.', 'error');
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Sign In'; }
             });
         }).catch(function (e) {
             var msg = 'Login failed. ';
