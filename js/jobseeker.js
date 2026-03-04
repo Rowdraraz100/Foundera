@@ -17,7 +17,11 @@
             bio: localStorage.getItem('seekerBio') || '',
             availability: localStorage.getItem('seekerAvailability') || '',
             expectedSalary: localStorage.getItem('seekerSalary') || '',
-            cvUrl: localStorage.getItem('seekerCvUrl') || '' 
+            cvUrl: localStorage.getItem('seekerCvUrl') || '',
+            profilePic: localStorage.getItem('seekerProfilePic') || '',
+            coverPic: localStorage.getItem('seekerCoverPic') || '',
+            cvBase64: '',
+            cvFileName: localStorage.getItem('seekerCvFileName') || ''
         };
         
         // --- LOAD PROFILE FROM FIREBASE (for data persistence across sessions) ---
@@ -36,8 +40,24 @@
                     profileData.bio = data.bio || profileData.bio;
                     profileData.availability = data.availability || profileData.availability;
                     profileData.expectedSalary = data.expectedSalary || profileData.expectedSalary;
+                    profileData.profilePic = data.profilePic || '';
+                    profileData.coverPic = data.coverPic || '';
+                    profileData.cvBase64 = data.cvBase64 || '';
+                    profileData.cvFileName = data.cvFileName || '';
+                    if (data.profilePic) localStorage.setItem('seekerProfilePic', data.profilePic);
+                    if (data.coverPic) localStorage.setItem('seekerCoverPic', data.coverPic);
+                    if (data.cvFileName) localStorage.setItem('seekerCvFileName', data.cvFileName);
                     if (Array.isArray(data.skills) && data.skills.length > 0) {
                         userSkills = data.skills;
+                    }
+                    if (Array.isArray(data.experiences) && data.experiences.length > 0) {
+                        userExperiences = data.experiences;
+                    }
+                    if (Array.isArray(data.education) && data.education.length > 0) {
+                        userEducation = data.education;
+                    }
+                    if (Array.isArray(data.certificates) && data.certificates.length > 0) {
+                        userCertificates = data.certificates;
                     }
                     // Sync back to localStorage
                     localStorage.setItem('seekerName', profileData.name);
@@ -74,6 +94,9 @@
             localStorage.removeItem('seekerSalary');
             localStorage.removeItem('seekerCvUrl');
             localStorage.removeItem('seekerPicture');
+            localStorage.removeItem('seekerProfilePic');
+            localStorage.removeItem('seekerCoverPic');
+            localStorage.removeItem('seekerCvFileName');
             localStorage.removeItem('seekerApplications');
             localStorage.removeItem('seekerSavedJobs');
             localStorage.removeItem('pendingSignup');
@@ -91,6 +114,9 @@
             localStorage.setItem('seekerBio', profileData.bio);
             localStorage.setItem('seekerAvailability', profileData.availability);
             localStorage.setItem('seekerSalary', profileData.expectedSalary);
+            if (profileData.profilePic) localStorage.setItem('seekerProfilePic', profileData.profilePic);
+            if (profileData.coverPic) localStorage.setItem('seekerCoverPic', profileData.coverPic);
+            if (profileData.cvFileName) localStorage.setItem('seekerCvFileName', profileData.cvFileName);
             
             // Also save to Firebase
             saveJobseekerProfileToFirebase();
@@ -112,6 +138,13 @@
                 availability: profileData.availability,
                 expectedSalary: profileData.expectedSalary,
                 skills: userSkills,
+                experiences: userExperiences,
+                education: userEducation,
+                certificates: userCertificates,
+                profilePic: profileData.profilePic || '',
+                coverPic: profileData.coverPic || '',
+                cvBase64: profileData.cvBase64 || '',
+                cvFileName: profileData.cvFileName || '',
                 role: 'Job Seeker',
                 profileUpdatedAt: new Date().toISOString()
             };
@@ -326,10 +359,147 @@
             }
         }
 
-        function simulateCVUpload() {
-            profileData.cvUrl = 'https://s3.amazonaws.com/fake-bucket/resume.pdf';
-            alert('CV Successfully Uploaded! AI can now analyze your profile.');
+        // --- PROFILE PIC UPLOAD ---
+        function handleProfilePicUpload(input) {
+            if (!input.files || !input.files[0]) return;
+            var file = input.files[0];
+            if (!file.type.match('image.*')) { alert('Please select an image file (JPG, PNG, etc.)'); return; }
+            if (file.size > 512000) { alert('Profile photo must be under 500KB. Please compress and try again.'); return; }
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                profileData.profilePic = e.target.result;
+                localStorage.setItem('seekerProfilePic', e.target.result);
+                updateSeekerHeaderAvatar();
+                renderContent();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeProfilePic() {
+            profileData.profilePic = '';
+            localStorage.removeItem('seekerProfilePic');
+            updateSeekerHeaderAvatar();
             renderContent();
+        }
+
+        // --- COVER PIC UPLOAD ---
+        function handleCoverPicUpload(input) {
+            if (!input.files || !input.files[0]) return;
+            var file = input.files[0];
+            if (!file.type.match('image.*')) { alert('Please select an image file (JPG, PNG, etc.)'); return; }
+            if (file.size > 1048576) { alert('Cover photo must be under 1MB. Please compress and try again.'); return; }
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                profileData.coverPic = e.target.result;
+                localStorage.setItem('seekerCoverPic', e.target.result);
+                renderContent();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeCoverPic() {
+            profileData.coverPic = '';
+            localStorage.removeItem('seekerCoverPic');
+            renderContent();
+        }
+
+        // --- CV/PDF UPLOAD ---
+        function handleCVUpload(input) {
+            if (!input.files || !input.files[0]) return;
+            var file = input.files[0];
+            if (file.type !== 'application/pdf') { alert('Please select a PDF file only.'); return; }
+            if (file.size > 5242880) { alert('CV file must be under 5MB.'); return; }
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                profileData.cvBase64 = e.target.result;
+                profileData.cvFileName = file.name;
+                localStorage.setItem('seekerCvFileName', file.name);
+                renderContent();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeCVFile() {
+            profileData.cvBase64 = '';
+            profileData.cvFileName = '';
+            localStorage.removeItem('seekerCvFileName');
+            renderContent();
+        }
+
+        // --- UPDATE HEADER AVATAR ---
+        function updateSeekerHeaderAvatar() {
+            var container = document.getElementById('header-avatar-container');
+            if (!container) return;
+            if (profileData.profilePic) {
+                container.innerHTML = '<img src="' + profileData.profilePic + '" alt="Profile" class="w-12 h-12 rounded-full object-cover">';
+            } else {
+                container.innerHTML = '<span id="user-initial">' + (profileData.name ? profileData.name.charAt(0).toUpperCase() : 'S') + '</span>';
+            }
+        }
+
+        // --- SAVE ALL CHANGES ---
+        function saveAllChanges() {
+            saveProfileToStorage();
+            
+            var btn = document.querySelector('.save-all-btn');
+            if (btn) {
+                btn.innerHTML = '<svg class="w-6 h-6 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity="0.3"></circle><path d="M4 12a8 8 0 018-8" stroke="currentColor" stroke-width="4" stroke-linecap="round"></path></svg> Saving...';
+                btn.disabled = true;
+            }
+            
+            if (typeof firebase === 'undefined' || !firebase.database) {
+                alert('Profile saved locally!');
+                return;
+            }
+            var safeKey = profileData.email.replace(/[.#$\[\]]/g, '_');
+            var db = firebase.database();
+            var fullData = {
+                name: profileData.name,
+                title: profileData.title,
+                location: profileData.location,
+                email: profileData.email,
+                linkedin: profileData.linkedin,
+                github: profileData.github,
+                bio: profileData.bio,
+                availability: profileData.availability,
+                expectedSalary: profileData.expectedSalary,
+                skills: userSkills,
+                experiences: userExperiences,
+                education: userEducation,
+                certificates: userCertificates,
+                profilePic: profileData.profilePic || '',
+                coverPic: profileData.coverPic || '',
+                cvBase64: profileData.cvBase64 || '',
+                cvFileName: profileData.cvFileName || '',
+                role: 'Job Seeker',
+                profileUpdatedAt: new Date().toISOString()
+            };
+            db.ref('users/jobseekers/' + safeKey).update(fullData)
+                .then(function() {
+                    if (btn) {
+                        btn.innerHTML = '<i data-lucide="check-circle" class="w-6 h-6"></i> Saved Successfully!';
+                        btn.classList.remove('btn-highlight-green');
+                        btn.style.background = '#16a34a';
+                        setTimeout(function() {
+                            btn.innerHTML = '<i data-lucide="save" class="w-6 h-6"></i> Save All Changes';
+                            btn.style.background = '';
+                            btn.classList.add('btn-highlight-green');
+                            btn.disabled = false;
+                            lucide.createIcons();
+                        }, 2500);
+                    }
+                    lucide.createIcons();
+                    console.log('All profile data saved to Firebase!');
+                })
+                .catch(function(e) {
+                    console.error('Firebase save error:', e);
+                    alert('Error saving. Changes saved locally.');
+                    if (btn) {
+                        btn.innerHTML = '<i data-lucide="save" class="w-6 h-6"></i> Save All Changes';
+                        btn.disabled = false;
+                        lucide.createIcons();
+                    }
+                });
         }
 
         // Modal Handlers
@@ -463,18 +633,31 @@
                     
                     <!-- 1. Top Header Card -->
                     <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 overflow-hidden shadow-lg relative">
-                        <div class="h-32 bg-gradient-to-r from-gray-700 to-gray-600 relative group cursor-pointer">
-                            <i data-lucide="camera" class="absolute top-4 right-4 text-white/50"></i>
+                        <div class="h-48 relative group cursor-pointer" style="${profileData.coverPic ? 'background-image: url(' + profileData.coverPic + '); background-size: cover; background-position: center;' : 'background: linear-gradient(135deg, #1f2937, #065f46, #1f2937);'}" onclick="document.getElementById('cover-pic-input').click()">
+                            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <div class="bg-black/60 px-4 py-2 rounded-xl flex items-center text-white text-sm font-medium">
+                                    <i data-lucide="camera" class="w-5 h-5 mr-2"></i> ${profileData.coverPic ? 'Change Cover Photo' : 'Upload Cover Photo'}
+                                </div>
+                            </div>
+                            ${profileData.coverPic ? '<button onclick="event.stopPropagation(); removeCoverPic();" class="absolute top-3 right-3 bg-red-500/80 hover:bg-red-500 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10" title="Remove cover"><i data-lucide="trash-2" class="w-4 h-4"></i></button>' : ''}
+                            <input type="file" id="cover-pic-input" accept="image/*" onchange="handleCoverPicUpload(this)" class="hidden">
                         </div>
                         <div class="px-8 pb-8 relative">
-                            <div class="absolute -top-16 left-8 w-32 h-32 bg-gray-900 rounded-full border-4 border-gray-800 flex items-center justify-center text-5xl font-bold text-green-400 shadow-xl">
-                                ${profileData.name ? profileData.name.charAt(0).toUpperCase() : 'S'}
-                                <div class="absolute bottom-0 right-0 bg-gray-700 p-2 rounded-full cursor-pointer hover:bg-gray-600 text-white"><i data-lucide="camera" class="w-4 h-4"></i></div>
+                            <div class="absolute -top-16 left-8 group cursor-pointer" onclick="document.getElementById('profile-pic-input').click()">
+                                ${profileData.profilePic 
+                                    ? '<img src="' + profileData.profilePic + '" alt="Profile" class="w-32 h-32 rounded-full object-cover border-4 border-gray-800 shadow-xl">'
+                                    : '<div class="w-32 h-32 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full border-4 border-gray-800 flex items-center justify-center text-5xl font-bold text-white shadow-xl">' + (profileData.name ? profileData.name.charAt(0).toUpperCase() : 'S') + '</div>'
+                                }
+                                <div class="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <i data-lucide="camera" class="w-6 h-6 text-white"></i>
+                                </div>
+                                <input type="file" id="profile-pic-input" accept="image/*" onchange="handleProfilePicUpload(this)" class="hidden">
                             </div>
-                            <div class="flex justify-end mt-4">
+                            <div class="flex justify-end mt-4 gap-2">
+                                ${profileData.profilePic ? '<button onclick="removeProfilePic()" class="p-2 hover:bg-red-500/20 rounded-full transition text-red-400 text-xs flex items-center" title="Remove photo"><i data-lucide="trash-2" class="w-4 h-4 mr-1"></i><span class="hidden sm:inline">Remove Photo</span></button>' : ''}
                                 <button onclick="openModal('basic-info-modal')" class="p-2 hover:bg-gray-700 rounded-full transition"><i data-lucide="pencil" class="w-5 h-5 text-gray-400"></i></button>
                             </div>
-                            <div class="mt-2">
+                            <div class="mt-4">
                                 <h1 class="text-2xl font-bold text-white">${profileData.name || 'Your Name'}</h1>
                                 <p class="text-gray-300 text-lg mt-1">${profileData.title || '<span class="text-gray-500 italic">Add your headline</span>'}</p>
                                 <p class="text-gray-500 text-sm mt-2 flex items-center"><i data-lucide="map-pin" class="w-4 h-4 mr-1"></i> ${profileData.location || 'Add location'}</p>
@@ -599,21 +782,26 @@
 
                     <!-- 7. CV/Resume Card -->
                     <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-8 shadow-lg">
-                        <h2 class="text-xl font-bold text-white mb-4">Resume / CV</h2>
-                        <p class="text-sm text-gray-400 mb-6">Founders use this to evaluate your background via AI.</p>
-                        <div class="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center bg-gray-900/50 hover:border-gray-500 transition cursor-pointer" onclick="simulateCVUpload()">
-                            ${profileData.cvUrl 
-                                ? `<i data-lucide="file-check" class="w-12 h-12 text-green-500 mx-auto mb-3"></i>
-                                   <p class="text-green-400 font-bold mb-2">Resume is currently active</p>
-                                   <span class="text-sm text-gray-400 underline">Upload a newer version</span>`
-                                : `<i data-lucide="file-up" class="w-12 h-12 text-gray-500 mx-auto mb-3"></i>
-                                   <p class="text-gray-300 font-medium mb-1">Click to Upload PDF Resume</p>
-                                   <span class="text-xs text-gray-500">Max size: 5MB</span>`
+                        <h2 class="text-xl font-bold text-white mb-2">Resume / CV</h2>
+                        <p class="text-sm text-gray-400 mb-6">Upload your PDF resume. Founders can view and download it from your profile.</p>
+                        <div class="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center bg-gray-900/50 hover:border-green-500/50 transition cursor-pointer" onclick="document.getElementById('cv-upload-input').click()">
+                            ${profileData.cvBase64 || profileData.cvFileName
+                                ? '<i data-lucide="file-check" class="w-12 h-12 text-green-500 mx-auto mb-3"></i><p class="text-green-400 font-bold mb-2">' + (profileData.cvFileName || 'Resume uploaded') + '</p><span class="text-sm text-gray-400 underline">Click to upload a newer version</span>'
+                                : '<i data-lucide="file-up" class="w-12 h-12 text-gray-500 mx-auto mb-3"></i><p class="text-gray-300 font-medium mb-1">Click to Upload PDF Resume</p><span class="text-xs text-gray-500">PDF only &bull; Max size: 5MB</span>'
                             }
                         </div>
+                        <input type="file" id="cv-upload-input" accept=".pdf,application/pdf" onchange="handleCVUpload(this)" class="hidden">
+                        ${profileData.cvBase64 ? '<button onclick="removeCVFile()" class="mt-3 text-red-400 hover:text-red-300 text-sm font-medium flex items-center transition-colors"><i data-lucide="trash-2" class="w-4 h-4 mr-1"></i> Remove CV</button>' : ''}
                     </div>
 
-                    <!-- ================= MODALS ================= -->
+                    <!-- Save All Changes -->
+                    <div class="sticky bottom-4 z-40">
+                        <button onclick="saveAllChanges()" class="save-all-btn w-full btn-highlight-green text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-2xl shadow-green-500/30 flex items-center justify-center gap-3 hover:scale-[1.02] transition-transform">
+                            <i data-lucide="save" class="w-6 h-6"></i> Save All Changes
+                        </button>
+                    </div>
+
+                    <!-- ================= MODALS ================== -->
                     
                     <!-- Basic Info & About Modal -->
                     <div id="basic-info-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1032,6 +1220,7 @@
         // Load from localStorage — set user initial safely
         var displayInitial = profileData.name ? profileData.name.charAt(0).toUpperCase() : 'S';
         document.getElementById('user-initial').textContent = displayInitial;
+        if (profileData.profilePic) updateSeekerHeaderAvatar();
         
         // Load saved applications and saved jobs from localStorage (with error handling)
         try {
@@ -1057,8 +1246,7 @@
             fetchFoundersFromFirebase()
         ]).then(function() {
             // Re-render with updated Firebase data
-            var initEl = document.getElementById('user-initial');
-            if (initEl) initEl.textContent = profileData.name ? profileData.name.charAt(0).toUpperCase() : 'S';
+            updateSeekerHeaderAvatar();
             renderContent();
         }).catch(function(err) {
             console.warn('Firebase load error (dashboard still works with local data):', err);

@@ -389,7 +389,14 @@
                             github: s.github || '',
                             bio: s.bio || '',
                             location: s.location || '',
-                            expectedSalary: s.expectedSalary || ''
+                            expectedSalary: s.expectedSalary || '',
+                            profilePic: s.profilePic || '',
+                            coverPic: s.coverPic || '',
+                            cvBase64: s.cvBase64 || '',
+                            cvFileName: s.cvFileName || '',
+                            experiences: Array.isArray(s.experiences) ? s.experiences : [],
+                            education: Array.isArray(s.education) ? s.education : [],
+                            certificates: Array.isArray(s.certificates) ? s.certificates : []
                         });
                     });
                 }
@@ -1228,23 +1235,123 @@
             `;
         }
 
+        // --- VIEW FULL SEEKER PROFILE ---
+        function viewSeekerProfile(talentId) {
+            var t = talents.find(function(x) { return x.id === talentId; });
+            if (!t) return;
+            var modal = document.createElement('div');
+            modal.id = 'seeker-profile-modal';
+            modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-start justify-center p-4 overflow-y-auto';
+            modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+            
+            var profilePicHTML = t.profilePic 
+                ? '<img src="' + t.profilePic + '" alt="' + t.name + '" class="w-28 h-28 rounded-full object-cover border-4 border-gray-800 shadow-xl">'
+                : '<div class="w-28 h-28 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full border-4 border-gray-800 flex items-center justify-center text-4xl font-bold text-white shadow-xl">' + t.avatar + '</div>';
+            
+            var coverStyle = t.coverPic 
+                ? 'background-image: url(' + t.coverPic + '); background-size: cover; background-position: center;'
+                : 'background: linear-gradient(135deg, #1f2937, #065f46, #1f2937);';
+            
+            var expHTML = t.experiences.length > 0 
+                ? t.experiences.map(function(exp) {
+                    return '<div class="flex items-start gap-3 border-b border-gray-700/50 pb-4 last:border-0 last:pb-0">' +
+                        '<div class="w-10 h-10 rounded-lg bg-gray-900 border border-gray-700 flex items-center justify-center shrink-0"><i data-lucide="briefcase" class="w-5 h-5 text-gray-400"></i></div>' +
+                        '<div><h5 class="font-bold text-white">' + (exp.title || '') + '</h5>' +
+                        '<p class="text-sm text-gray-300">' + (exp.company || '') + '</p>' +
+                        '<p class="text-xs text-gray-500 mt-1">' + (exp.duration || '') + '</p>' +
+                        (exp.description ? '<p class="text-xs text-gray-400 mt-2">' + exp.description + '</p>' : '') +
+                        '</div></div>';
+                }).join('')
+                : '<p class="text-gray-500 text-sm italic">No experience added yet.</p>';
+            
+            var eduHTML = t.education.length > 0
+                ? t.education.map(function(edu) {
+                    return '<div class="flex items-start gap-3 border-b border-gray-700/50 pb-4 last:border-0 last:pb-0">' +
+                        '<div class="w-10 h-10 rounded-lg bg-gray-900 border border-gray-700 flex items-center justify-center shrink-0"><i data-lucide="graduation-cap" class="w-5 h-5 text-gray-400"></i></div>' +
+                        '<div><h5 class="font-bold text-white">' + (edu.school || '') + '</h5>' +
+                        '<p class="text-sm text-gray-300">' + (edu.degree || '') + '</p>' +
+                        '<p class="text-xs text-gray-500 mt-1">' + (edu.duration || '') + '</p>' +
+                        (edu.description ? '<p class="text-xs text-gray-400 mt-2">' + edu.description + '</p>' : '') +
+                        '</div></div>';
+                }).join('')
+                : '<p class="text-gray-500 text-sm italic">No education added yet.</p>';
+            
+            var certHTML = t.certificates.length > 0
+                ? t.certificates.map(function(cert) {
+                    return '<div class="flex items-center justify-between border-b border-gray-700/50 pb-3 last:border-0 last:pb-0">' +
+                        '<div><h5 class="font-bold text-white text-sm">' + (cert.name || '') + '</h5>' +
+                        '<p class="text-xs text-gray-400">' + (cert.issuer || '') + ' &bull; ' + (cert.year || '') + '</p></div>' +
+                        '<span class="text-xs font-bold text-green-400 bg-green-500/10 px-2 py-1 rounded border border-green-500/20">Verified</span></div>';
+                }).join('')
+                : '<p class="text-gray-500 text-sm italic">No certifications added yet.</p>';
+            
+            var skillsHTML = t.skills.length > 0
+                ? t.skills.map(function(s) { return '<span class="bg-gray-900 border border-gray-600 px-3 py-1.5 rounded-lg text-sm text-gray-200 font-medium">' + s + '</span>'; }).join('')
+                : '<p class="text-gray-500 text-sm italic">No skills listed.</p>';
+            
+            var cvSection = '';
+            if (t.cvBase64) {
+                cvSection = '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6">' +
+                    '<h4 class="font-bold text-lg text-white mb-4 flex items-center"><i data-lucide="file-text" class="w-5 h-5 mr-2 text-green-400"></i> Resume / CV</h4>' +
+                    '<div class="bg-gray-900/50 border border-gray-700 rounded-xl p-4 flex items-center justify-between">' +
+                    '<div class="flex items-center"><i data-lucide="file-check" class="w-8 h-8 text-green-400 mr-3"></i><div><p class="text-white font-medium">' + (t.cvFileName || 'Resume.pdf') + '</p><p class="text-xs text-gray-500">PDF Document</p></div></div>' +
+                    '<a href="' + t.cvBase64 + '" download="' + (t.cvFileName || t.name + '_CV.pdf') + '" class="bg-green-600 hover:bg-green-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center gap-2 transition-colors"><i data-lucide="download" class="w-4 h-4"></i> Download CV</a>' +
+                    '</div></div>';
+            }
+            
+            var contactSection = '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6">' +
+                '<h4 class="font-bold text-lg text-white mb-4 flex items-center"><i data-lucide="phone" class="w-5 h-5 mr-2 text-blue-400"></i> Contact Information</h4>' +
+                '<div class="grid sm:grid-cols-2 gap-4">' +
+                (t.email ? '<a href="mailto:' + t.email + '" class="bg-gray-900/80 border border-gray-700 hover:border-blue-500/50 p-4 rounded-xl flex items-center gap-3 transition-colors group"><div class="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center"><i data-lucide="mail" class="w-5 h-5 text-red-400"></i></div><div><p class="text-xs text-gray-500">Email</p><p class="text-sm text-white font-medium group-hover:text-blue-400 transition-colors">' + t.email + '</p></div></a>' : '') +
+                (t.linkedin ? '<a href="' + t.linkedin + '" target="_blank" class="bg-gray-900/80 border border-gray-700 hover:border-blue-500/50 p-4 rounded-xl flex items-center gap-3 transition-colors group"><div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center"><i data-lucide="linkedin" class="w-5 h-5 text-blue-400"></i></div><div><p class="text-xs text-gray-500">LinkedIn</p><p class="text-sm text-white font-medium group-hover:text-blue-400 transition-colors">View Profile</p></div></a>' : '') +
+                (t.github ? '<a href="' + t.github + '" target="_blank" class="bg-gray-900/80 border border-gray-700 hover:border-gray-500/50 p-4 rounded-xl flex items-center gap-3 transition-colors group"><div class="w-10 h-10 bg-gray-600/30 rounded-lg flex items-center justify-center"><i data-lucide="github" class="w-5 h-5 text-gray-300"></i></div><div><p class="text-xs text-gray-500">GitHub</p><p class="text-sm text-white font-medium group-hover:text-gray-300 transition-colors">View Profile</p></div></a>' : '') +
+                '</div></div>';
+            
+            modal.innerHTML = '<div class="bg-gray-900 rounded-3xl border border-gray-700/50 shadow-2xl w-full max-w-3xl my-8 overflow-hidden animate-fade-in">' +
+                '<!-- Close Button -->' +
+                '<button onclick="document.getElementById(\'seeker-profile-modal\').remove()" class="absolute top-6 right-6 z-20 bg-gray-800/90 hover:bg-gray-700 p-2 rounded-xl text-gray-400 hover:text-white transition-colors border border-gray-700"><i data-lucide="x" class="w-5 h-5"></i></button>' +
+                '<!-- Cover -->' +
+                '<div class="h-44 relative" style="' + coverStyle + '">' +
+                '<div class="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent"></div>' +
+                '</div>' +
+                '<!-- Profile Header -->' +
+                '<div class="px-8 pb-6 relative -mt-16">' +
+                '<div class="flex flex-col sm:flex-row items-start gap-5">' +
+                '<div class="shrink-0">' + profilePicHTML + '</div>' +
+                '<div class="flex-1 pt-2">' +
+                '<h2 class="text-2xl font-bold text-white">' + t.name + '</h2>' +
+                '<p class="text-green-400 font-medium text-lg">' + t.role + '</p>' +
+                (t.location ? '<p class="text-gray-500 text-sm flex items-center mt-1"><i data-lucide="map-pin" class="w-4 h-4 mr-1"></i> ' + t.location + '</p>' : '') +
+                (t.available ? '<span class="inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-green-500/20 text-green-400 border border-green-500/30">Available for hire</span>' : '') +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '<!-- Body -->' +
+                '<div class="px-8 pb-8 space-y-6">' +
+                (t.bio ? '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6"><h4 class="font-bold text-lg text-white mb-3 flex items-center"><i data-lucide="user" class="w-5 h-5 mr-2 text-green-400"></i> About</h4><p class="text-gray-300 text-sm leading-relaxed whitespace-pre-line">' + t.bio + '</p></div>' : '') +
+                '<!-- Skills -->' +
+                '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6"><h4 class="font-bold text-lg text-white mb-4 flex items-center"><i data-lucide="code" class="w-5 h-5 mr-2 text-yellow-400"></i> Skills</h4><div class="flex flex-wrap gap-2">' + skillsHTML + '</div></div>' +
+                '<!-- Experience -->' +
+                '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6"><h4 class="font-bold text-lg text-white mb-4 flex items-center"><i data-lucide="briefcase" class="w-5 h-5 mr-2 text-blue-400"></i> Experience & Projects</h4><div class="space-y-4">' + expHTML + '</div></div>' +
+                '<!-- Education -->' +
+                '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6"><h4 class="font-bold text-lg text-white mb-4 flex items-center"><i data-lucide="graduation-cap" class="w-5 h-5 mr-2 text-purple-400"></i> Education</h4><div class="space-y-4">' + eduHTML + '</div></div>' +
+                '<!-- Certifications -->' +
+                '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6"><h4 class="font-bold text-lg text-white mb-4 flex items-center"><i data-lucide="award" class="w-5 h-5 mr-2 text-orange-400"></i> Certifications</h4><div class="space-y-3">' + certHTML + '</div></div>' +
+                cvSection +
+                contactSection +
+                '</div></div>';
+            
+            document.body.appendChild(modal);
+            lucide.createIcons();
+        }
+
         function renderTalent() {
             if (!firebaseDataLoaded) {
-                return `
-                    <div class="text-center py-20 bg-gray-800/40 rounded-2xl border border-gray-700/50">
-                        <div class="w-12 h-12 rounded-full border-4 border-gray-700 loader mb-4 mx-auto"></div>
-                        <p class="text-gray-400">Loading talent from database...</p>
-                    </div>`;
+                return '<div class="text-center py-20 bg-gray-800/40 rounded-2xl border border-gray-700/50"><div class="w-12 h-12 rounded-full border-4 border-gray-700 loader mb-4 mx-auto"></div><p class="text-gray-400">Loading talent from database...</p></div>';
             }
             
             if (talents.length === 0) {
-                return `
-                    <div class="text-center py-20 bg-gray-800/40 rounded-2xl border border-gray-700/50">
-                        <i data-lucide="users" class="w-16 h-16 text-gray-500 mx-auto mb-4"></i>
-                        <h2 class="text-2xl font-bold text-white mb-2">No Job Seekers Found Yet</h2>
-                        <p class="text-gray-400 mb-2">When job seekers create their profiles on Foundera, they will appear here.</p>
-                        <p class="text-gray-500 text-sm">Share your startup idea to attract talent!</p>
-                    </div>`;
+                return '<div class="text-center py-20 bg-gray-800/40 rounded-2xl border border-gray-700/50"><i data-lucide="users" class="w-16 h-16 text-gray-500 mx-auto mb-4"></i><h2 class="text-2xl font-bold text-white mb-2">No Job Seekers Found Yet</h2><p class="text-gray-400 mb-2">When job seekers create their profiles on Foundera, they will appear here.</p><p class="text-gray-500 text-sm">Share your startup idea to attract talent!</p></div>';
             }
             
             return `
@@ -1252,39 +1359,58 @@
                     <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 flex flex-wrap gap-4 shadow-sm">
                         <div class="flex-1 min-w-[200px] relative">
                             <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
-                            <input type="text" placeholder="Search by name or React, Python, etc..." class="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-white">
+                            <input type="text" id="talent-search-input" oninput="filterTalents()" placeholder="Search by name, skill, or location..." class="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-white">
                         </div>
                     </div>
 
                     <p class="text-sm text-gray-400"><i data-lucide="database" class="w-4 h-4 inline mr-1"></i> Showing <strong class="text-white">${talents.length}</strong> real job seekers from database</p>
 
-                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        ${talents.map(talent => `
-                            <div class="bg-gray-800/30 rounded-2xl border border-gray-700/50 p-6 card-hover shadow-lg">
-                                <div class="flex items-start justify-between mb-4">
-                                    <div class="flex items-center">
-                                        <div class="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center font-bold mr-3 border border-gray-600 text-white">${talent.avatar}</div>
-                                        <div>
-                                            <h3 class="font-bold text-white">${talent.name}</h3>
-                                            <p class="text-sm text-gray-400">${talent.role}</p>
-                                        </div>
-                                    </div>
-                                    <span class="px-2 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider ${talent.available ? 'bg-green-500/20 text-green-400' : 'bg-gray-700 text-gray-400'}">${talent.available ? 'Available' : 'Busy'}</span>
-                                </div>
-                                ${talent.bio ? `<p class="text-gray-400 text-xs mb-3 line-clamp-2">${talent.bio}</p>` : ''}
-                                <div class="flex flex-wrap gap-1 mb-4">
-                                    ${talent.skills.map(skill => `<span class="bg-gray-900 border border-gray-700 text-gray-300 text-xs px-2 py-1 rounded">${skill}</span>`).join('')}
-                                </div>
-                                ${talent.expectedSalary ? `<p class="text-xs text-gray-500 mb-3">Expected: <span class="text-green-400">${talent.expectedSalary}</span></p>` : ''}
-                                <div class="flex gap-2 mt-4">
-                                    ${talent.email ? `<a href="mailto:${talent.email}" class="flex-1 border border-blue-500/50 hover:bg-blue-500/10 text-blue-400 py-2.5 rounded-xl text-sm font-bold transition-colors text-center flex items-center justify-center"><i data-lucide="mail" class="w-4 h-4 mr-1"></i> Email</a>` : ''}
-                                    ${talent.linkedin ? `<a href="${talent.linkedin}" target="_blank" class="flex-1 border border-gray-600 hover:bg-gray-700 text-gray-300 py-2.5 rounded-xl text-sm font-bold transition-colors text-center flex items-center justify-center"><i data-lucide="linkedin" class="w-4 h-4 mr-1"></i> LinkedIn</a>` : ''}
-                                </div>
-                            </div>
-                        `).join('')}
+                    <div id="talent-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${renderTalentCards(talents)}
                     </div>
                 </div>
             `;
+        }
+        
+        function renderTalentCards(talentList) {
+            return talentList.map(function(talent) {
+                var picHTML = talent.profilePic 
+                    ? '<img src="' + talent.profilePic + '" alt="' + talent.name + '" class="w-14 h-14 rounded-full object-cover border-2 border-gray-600">'
+                    : '<div class="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center font-bold text-lg text-white border-2 border-gray-600">' + talent.avatar + '</div>';
+                
+                return '<div class="bg-gray-800/30 rounded-2xl border border-gray-700/50 overflow-hidden card-hover shadow-lg group">' +
+                    (talent.coverPic ? '<div class="h-24 bg-cover bg-center" style="background-image: url(' + talent.coverPic + ')"></div>' : '<div class="h-24 bg-gradient-to-r from-gray-800 to-green-900/40"></div>') +
+                    '<div class="px-5 pb-5 -mt-7 relative">' +
+                    '<div class="flex items-end justify-between mb-3">' +
+                    picHTML +
+                    '<span class="px-2 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider ' + (talent.available ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gray-700 text-gray-400 border border-gray-600') + '">' + (talent.available ? 'Available' : 'Busy') + '</span>' +
+                    '</div>' +
+                    '<h3 class="font-bold text-white text-lg">' + talent.name + '</h3>' +
+                    '<p class="text-sm text-gray-400 mb-2">' + talent.role + '</p>' +
+                    (talent.location ? '<p class="text-xs text-gray-500 flex items-center mb-3"><i data-lucide="map-pin" class="w-3 h-3 mr-1"></i>' + talent.location + '</p>' : '') +
+                    (talent.bio ? '<p class="text-gray-400 text-xs mb-3 line-clamp-2">' + talent.bio + '</p>' : '') +
+                    '<div class="flex flex-wrap gap-1.5 mb-4">' + talent.skills.slice(0, 5).map(function(skill) { return '<span class="bg-gray-900 border border-gray-700 text-gray-300 text-xs px-2 py-1 rounded">' + skill + '</span>'; }).join('') + (talent.skills.length > 5 ? '<span class="text-xs text-gray-500">+' + (talent.skills.length - 5) + ' more</span>' : '') + '</div>' +
+                    '<div class="flex gap-2 mt-4">' +
+                    '<button onclick="viewSeekerProfile(\'' + talent.id + '\')" class="flex-1 founder-btn text-white py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 text-center flex items-center justify-center transition-colors"><i data-lucide="eye" class="w-4 h-4 mr-1.5"></i> View Profile</button>' +
+                    (talent.email ? '<a href="mailto:' + talent.email + '" class="p-2.5 border border-gray-600 hover:border-blue-500/50 hover:bg-blue-500/10 rounded-xl transition-colors flex items-center justify-center" title="Email"><i data-lucide="mail" class="w-4 h-4 text-blue-400"></i></a>' : '') +
+                    '</div>' +
+                    '</div></div>';
+            }).join('');
+        }
+        
+        function filterTalents() {
+            var query = (document.getElementById('talent-search-input').value || '').toLowerCase().trim();
+            var grid = document.getElementById('talent-grid');
+            if (!grid) return;
+            var filtered = talents.filter(function(t) {
+                if (!query) return true;
+                return t.name.toLowerCase().includes(query) || 
+                       t.role.toLowerCase().includes(query) ||
+                       (t.location || '').toLowerCase().includes(query) ||
+                       t.skills.some(function(s) { return s.toLowerCase().includes(query); });
+            });
+            grid.innerHTML = renderTalentCards(filtered);
+            lucide.createIcons();
         }
 
         function renderInvestors() {
