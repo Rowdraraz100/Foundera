@@ -490,6 +490,15 @@
             }
             updateSidebarActive();
             renderContent();
+            // Scroll to top for better UX
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Close mobile sidebar after navigation
+            var sidebar = document.getElementById('sidebar');
+            var overlay = document.getElementById('sidebar-overlay');
+            if (sidebar && sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+                if (overlay) overlay.classList.add('hidden');
+            }
         }
 
         function updateSidebarActive() {
@@ -653,9 +662,9 @@
                 pageSubtitle.textContent = titles[currentTab].s;
             }
 
-            // Fade animation trigger
             content.style.opacity = '0';
-            setTimeout(() => {
+            content.style.transition = 'opacity 0.2s ease';
+            requestAnimationFrame(function() {
                 switch(currentTab) {
                     case 'overview': content.innerHTML = renderOverview(); break;
                     case 'ideas': content.innerHTML = renderIdeas(); break;
@@ -668,9 +677,8 @@
                     case 'community': content.innerHTML = renderCommunity(); break;
                 }
                 lucide.createIcons();
-                content.style.opacity = '1';
-                content.style.transition = 'opacity 0.3s ease';
-            }, 50);
+                requestAnimationFrame(function() { content.style.opacity = '1'; });
+            });
         }
 
         // --- SIMPLIFIED OVERVIEW ---
@@ -1542,7 +1550,13 @@
             window.location.href = 'index.html';
         }
         
-        // Load profile + idea from Firebase first, then render
+        // Start community listener FIRST for fastest post loading
+        fetchCommunityPosts();
+        
+        // Render community tab immediately with cached data
+        setTab('community');
+        
+        // Load profile + idea from Firebase, then update UI
         Promise.all([
             loadFounderProfileFromFirebase(),
             loadIdeaFromFirebase()
@@ -1551,17 +1565,13 @@
             updateStartupNameDisplay();
             // Load real data from Firebase (investors + job seekers)
             loadFirebaseData();
-            // Go to community tab
-            setTab('community');
+            renderContent();
         }).catch(function() {
             updateHeaderAvatar();
             updateStartupNameDisplay();
             loadFirebaseData();
-            setTab('community');
+            renderContent();
         });
-        
-        // Start real-time community posts listener
-        fetchCommunityPosts();
         
         lucide.createIcons();
 
@@ -1569,5 +1579,5 @@
             setTimeout(function() {
                 var p = document.getElementById('foundera-preloader');
                 if (p) { p.classList.add('preloader-hidden'); setTimeout(function() { p.remove(); }, 600); }
-            }, 2400);
+            }, 1200);
         });

@@ -92,6 +92,15 @@
             currentTab = tab;
             updateSidebarActive();
             renderContent();
+            // Scroll to top for better UX
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Close mobile sidebar after navigation
+            var sidebar = document.getElementById('sidebar');
+            var overlay = document.getElementById('sidebar-overlay');
+            if (sidebar && sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+                if (overlay) overlay.classList.add('hidden');
+            }
         }
 
         function updateSidebarActive() {
@@ -220,7 +229,8 @@
             }
 
             content.style.opacity = '0';
-            setTimeout(() => {
+            content.style.transition = 'opacity 0.2s ease';
+            requestAnimationFrame(function() {
                 switch(currentTab) {
                     case 'overview': content.innerHTML = renderOverview(); break;
                     case 'profile': content.innerHTML = renderProfile(); break;
@@ -231,9 +241,8 @@
                     case 'community': content.innerHTML = renderCommunity(); break;
                 }
                 lucide.createIcons();
-                content.style.opacity = '1';
-                content.style.transition = 'opacity 0.3s ease';
-            }, 50);
+                requestAnimationFrame(function() { content.style.opacity = '1'; });
+            });
         }
 
         // --- VIEWS ---
@@ -560,7 +569,8 @@
                         <div class="p-6 border-b border-gray-700/50">
                             <h2 class="text-xl font-bold text-white">Active Investments</h2>
                         </div>
-                        <table class="w-full text-left">
+                        <div class="overflow-x-auto">
+                        <table class="w-full text-left min-w-[600px]">
                             <thead class="bg-gray-900/50 border-b border-gray-700/50">
                                 <tr>
                                     <th class="px-6 py-4 text-sm font-bold text-gray-300">Startup</th>
@@ -586,6 +596,7 @@
                                 `}).join('')}
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
             `;
@@ -642,20 +653,23 @@ function toggleMobileSidebar() {
         }
         document.getElementById('user-initial').textContent = profileData.name.charAt(0).toUpperCase();
         
-        // Load real founders data from Firebase
-        fetchFoundersFromFirebase().then(function() {
-            setTab('community');
-        }).catch(function() {
-            setTab('community');
-        });
-        
-        // Start real-time community posts listener
+        // Start community listener FIRST for fastest post loading
         fetchCommunityPosts();
+        
+        // Render community tab immediately with cached data
+        setTab('community');
+        
+        // Load real founders data from Firebase and update
+        fetchFoundersFromFirebase().then(function() {
+            renderContent();
+        }).catch(function() {
+            renderContent();
+        });
 
 // --- PRELOADER ---
 window.addEventListener('load', function() {
     setTimeout(function() {
         var p = document.getElementById('foundera-preloader');
         if (p) { p.classList.add('preloader-hidden'); setTimeout(function() { p.remove(); }, 600); }
-    }, 2400);
+    }, 1200);
 });

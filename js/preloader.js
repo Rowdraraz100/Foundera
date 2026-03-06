@@ -12,5 +12,5 @@ function dismissPreloader() {
 }
 
 window.addEventListener('load', function () {
-    setTimeout(dismissPreloader, 2400);
+    setTimeout(dismissPreloader, 1200);
 });

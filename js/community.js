@@ -8,6 +8,16 @@
     window._communityPosts = [];
     window._communityListener = null;
     window._communityFilter = 'all';
+    window._communityLoaded = false;
+
+    // --- LOAD CACHED POSTS FROM LOCALSTORAGE FOR INSTANT DISPLAY ---
+    try {
+        var cachedPosts = localStorage.getItem('foundera_community_cache');
+        if (cachedPosts) {
+            window._communityPosts = JSON.parse(cachedPosts);
+            if (window._communityPosts.length > 0) window._communityLoaded = true;
+        }
+    } catch(e) { window._communityPosts = []; }
 
     // --- IMAGE COMPRESSION UTILITY (shared) ---
     window.compressImageFile = function(file, maxWidth, maxHeight, quality) {
@@ -161,6 +171,19 @@
                 });
                 window._communityPosts.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
             }
+            window._communityLoaded = true;
+            // Cache top 30 posts to localStorage for instant load next time
+            try {
+                var toCache = window._communityPosts.slice(0, 30).map(function(p) {
+                    var c = {};
+                    for (var k in p) { if (k !== 'imageBase64' && k !== 'pdfBase64') c[k] = p[k]; }
+                    return c;
+                });
+                localStorage.setItem('foundera_community_cache', JSON.stringify(toCache));
+            } catch(e) { /* storage full — ignore */ }
+            // Update notifications & badge on every data change
+            window.buildNotifications();
+            updateNotifBadge();
             if (typeof currentTab !== 'undefined' && currentTab === 'community') {
                 if (typeof renderContent === 'function') renderContent();
             }
@@ -348,7 +371,18 @@
 
         // Build posts HTML
         var postsHtml = '';
-        if (posts.length === 0) {
+        if (!window._communityLoaded && posts.length === 0) {
+            // Show loading skeleton while Firebase is fetching
+            postsHtml = '<div class="space-y-4">';
+            for (var sk = 0; sk < 3; sk++) {
+                postsHtml += '<div class="community-post-card animate-pulse"><div class="p-5 sm:p-6">' +
+                    '<div class="flex items-center gap-3 mb-4"><div class="w-11 h-11 bg-gray-700/60 rounded-full"></div><div class="flex-1"><div class="h-3.5 bg-gray-700/60 rounded w-32 mb-2"></div><div class="h-2.5 bg-gray-700/40 rounded w-20"></div></div></div>' +
+                    '<div class="space-y-2 mb-4"><div class="h-3 bg-gray-700/40 rounded w-full"></div><div class="h-3 bg-gray-700/40 rounded w-4/5"></div><div class="h-3 bg-gray-700/40 rounded w-3/5"></div></div>' +
+                    '<div class="flex gap-2"><div class="h-7 bg-gray-700/30 rounded-lg w-16"></div><div class="h-7 bg-gray-700/30 rounded-lg w-20"></div><div class="h-7 bg-gray-700/30 rounded-lg w-18"></div></div>' +
+                '</div></div>';
+            }
+            postsHtml += '</div>';
+        } else if (posts.length === 0) {
             postsHtml = '<div class="text-center py-20 bg-gray-800/30 rounded-2xl border border-gray-700/30 community-post-enter" style="animation-delay:0.1s">' +
                 '<div class="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-full flex items-center justify-center"><i data-lucide="message-circle" class="w-10 h-10 text-indigo-400"></i></div>' +
                 '<h3 class="text-xl font-bold text-white mb-2">No Posts Yet</h3>' +
@@ -651,7 +685,7 @@
                     ? '<img src="' + n.actorPic + '" class="w-9 h-9 rounded-full object-cover shrink-0">'
                     : '<div class="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0">' + (n.actorName ? n.actorName.charAt(0).toUpperCase() : '?') + '</div>';
                 if (n.type === 'reaction') {
-                    return '<div class="notification-item' + (isUnread ? ' unread' : '') + '">' +
+                    return '<div class="notification-item' + (isUnread ? ' unread' : '') + '" onclick="window._goToNotifPost()">' +
                         avatar +
                         '<div class="flex-1 min-w-0">' +
                             '<p class="text-sm text-gray-200"><span class="font-semibold text-white">' + _escHtml(n.actorName) + '</span> reacted ' + n.emoji + ' to your post</p>' +
@@ -659,7 +693,7 @@
                             '<p class="text-[10px] text-gray-600 mt-1">' + ago + '</p>' +
                         '</div></div>';
                 } else {
-                    return '<div class="notification-item' + (isUnread ? ' unread' : '') + '">' +
+                    return '<div class="notification-item' + (isUnread ? ' unread' : '') + '" onclick="window._goToNotifPost()">' +
                         avatar +
                         '<div class="flex-1 min-w-0">' +
                             '<p class="text-sm text-gray-200"><span class="font-semibold text-white">' + _escHtml(n.actorName) + '</span> commented on your post</p>' +
@@ -692,20 +726,17 @@
         }
     });
 
-    // Auto-update badge when community posts change
-    var origFetch = window.fetchCommunityPosts;
-    window.fetchCommunityPosts = function() {
-        origFetch();
-        // Attach a secondary listener for notifications
-        if (typeof firebase !== 'undefined' && firebase.database) {
-            var ref = firebase.database().ref('community_posts');
-            if (window._notifListener) ref.off('value', window._notifListener);
-            window._notifListener = ref.on('value', function() {
-                setTimeout(function() {
-                    window.buildNotifications();
-                    updateNotifBadge();
-                }, 500);
-            });
+    // Notification updates are now integrated into the main fetchCommunityPosts listener
+
+    // Navigate to community tab when clicking a notification item
+    window._goToNotifPost = function() {
+        // Close notification panel
+        var panel = document.getElementById('notif-panel');
+        if (panel) panel.remove();
+        window._notifPanelOpen = false;
+        // Navigate to community tab
+        if (typeof setTab === 'function') {
+            setTab('community');
         }
     };
 

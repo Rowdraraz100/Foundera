@@ -227,6 +227,15 @@
             currentTab = tab;
             updateSidebarActive();
             renderContent();
+            // Scroll to top for better UX
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Close mobile sidebar after navigation
+            var sidebar = document.getElementById('sidebar');
+            var overlay = document.getElementById('sidebar-overlay');
+            if (sidebar && sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+                if (overlay) overlay.classList.add('hidden');
+            }
         }
 
         function updateSidebarActive() {
@@ -747,7 +756,8 @@
             }
 
             content.style.opacity = '0';
-            setTimeout(() => {
+            content.style.transition = 'opacity 0.2s ease';
+            requestAnimationFrame(function() {
                 switch(currentTab) {
                     case 'overview': content.innerHTML = renderOverview(); break;
                     case 'profile': content.innerHTML = renderProfile(); break;
@@ -759,9 +769,8 @@
                     case 'saved': content.innerHTML = renderSavedJobs(); break;
                 }
                 lucide.createIcons();
-                content.style.opacity = '1';
-                content.style.transition = 'opacity 0.3s ease';
-            }, 50);
+                requestAnimationFrame(function() { content.style.opacity = '1'; });
+            });
         }
 
         // --- VIEWS ---
@@ -1533,7 +1542,8 @@
             return `
                 <div class="space-y-6">
                     <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 overflow-hidden shadow-lg">
-                        <table class="w-full text-left">
+                        <div class="overflow-x-auto">
+                        <table class="w-full text-left min-w-[600px]">
                             <thead class="bg-gray-900/50 border-b border-gray-700/50">
                                 <tr>
                                     <th class="px-6 py-4 text-sm font-bold text-gray-300">Job Details</th>
@@ -1563,6 +1573,7 @@
                                 `}).join('')}
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
             `;
@@ -1636,6 +1647,8 @@
         if (appBadge) appBadge.textContent = userApplications.length;
         
         // RENDER IMMEDIATELY with localStorage data — don't wait for Firebase
+        // Start community listener FIRST for fastest post loading
+        fetchCommunityPosts();
         setTab('community');
         
         // Then load fresh data from Firebase and re-render
@@ -1651,14 +1664,11 @@
             console.warn('Firebase load error (dashboard still works with local data):', err);
         });
         
-        // Start real-time community posts listener
-        fetchCommunityPosts();
-        
         if (typeof lucide !== 'undefined') { lucide.createIcons(); }
 
         window.addEventListener('load', function() {
             setTimeout(function() {
                 var p = document.getElementById('foundera-preloader');
                 if (p) { p.classList.add('preloader-hidden'); setTimeout(function() { p.remove(); }, 600); }
-            }, 2400);
+            }, 1200);
         });
