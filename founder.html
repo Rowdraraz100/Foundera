@@ -47,7 +47,7 @@
     
     <div class="flex">
         <!-- Sidebar -->
-        <aside id="sidebar" class="sidebar w-64 bg-gray-800/50 backdrop-blur-xl min-h-screen fixed left-0 top-0 border-r border-gray-700/50 z-50 transition-transform duration-300">
+        <aside id="sidebar" class="sidebar w-64 bg-gray-800/50 backdrop-blur-xl min-h-screen fixed left-0 top-0 border-r border-gray-700/50 z-50 overflow-y-auto transition-transform duration-300">
             <div class="p-6">
                 <a href="founder.html" class="flex items-center gap-3 mb-4 cursor-pointer hover:opacity-80 transition-opacity">
                     <img src="images/founderaLogo.jpeg" alt="Foundera" class="w-10 h-10 rounded-xl object-cover shadow-lg shadow-blue-500/30">
@@ -77,6 +77,9 @@
                     </a>
                     <a href="#" onclick="setTab('talent')" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300" id="nav-talent">
                         <i data-lucide="users" class="w-5 h-5"></i><span>Find Talent</span>
+                    </a>
+                    <a href="#" onclick="setTab('community')" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300" id="nav-community">
+                        <i data-lucide="message-circle" class="w-5 h-5 text-indigo-400"></i><span>Community</span>
                     </a>
                     <a href="#" onclick="setTab('investors')" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300" id="nav-investors">
                         <i data-lucide="trending-up" class="w-5 h-5"></i><span>Investors</span>
@@ -120,6 +123,7 @@
             <div id="content" class="animate-fade-in"></div>
         </main>
     </div>
+    <script src="js/community.js"></script>
     <script src="js/founder.js"></script>
 </body>
 </html>

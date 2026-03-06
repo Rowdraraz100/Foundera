@@ -470,3 +470,120 @@ body {
 .animate-spin { animation: spin 1s linear infinite; }
 
 .border-3 { border-width: 3px; }
+
+/* ============================================================
+   COMMUNITY FEED STYLES — shared across all 3 dashboards
+   ============================================================ */
+
+/* Post card */
+.community-post-card {
+    background: rgba(31, 41, 55, 0.5);
+    border: 1px solid rgba(75, 85, 99, 0.4);
+    border-radius: 1rem;
+    overflow: hidden;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+    backdrop-filter: blur(8px);
+}
+.community-post-card:hover {
+    border-color: rgba(99, 102, 241, 0.3);
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.08);
+    transform: translateY(-1px);
+}
+
+/* Compose card */
+.community-compose-card {
+    background: rgba(31, 41, 55, 0.6);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 1rem;
+    overflow: hidden;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 24px rgba(99, 102, 241, 0.06);
+}
+
+/* Reaction buttons */
+.community-reaction-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    background: transparent;
+}
+.community-reaction-btn:hover {
+    transform: scale(1.05);
+}
+.community-reaction-btn:active {
+    transform: scale(0.95);
+}
+
+/* Post entrance animation */
+@keyframes communityPostEnter {
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.community-post-enter {
+    animation: communityPostEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Comment entrance */
+@keyframes communityCommentEnter {
+    from {
+        opacity: 0;
+        transform: translateX(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+.community-comment-enter {
+    animation: communityCommentEnter 0.3s ease both;
+}
+
+/* Header banner shimmer */
+.community-header-banner {
+    position: relative;
+}
+.community-header-banner::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.05), transparent);
+    animation: communityShimmer 4s ease-in-out infinite;
+    pointer-events: none;
+    border-radius: 1rem;
+}
+@keyframes communityShimmer {
+    0% { left: -100%; }
+    50% { left: 100%; }
+    100% { left: 100%; }
+}
+
+/* Scrollbar thin for filter tabs */
+.scrollbar-thin::-webkit-scrollbar {
+    height: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(75, 85, 99, 0.4);
+    border-radius: 2px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.4);
+}

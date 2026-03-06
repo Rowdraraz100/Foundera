@@ -614,7 +614,8 @@
                 investors: { t: 'Investors', s: 'Connect with investors matching your industry.' },
                 post: { t: 'Share Your Unique Idea', s: 'Provide details to get best AI matches.' },
                 roadmap: { t: 'AI Roadmap Generator', s: 'Generate a step-by-step execution plan for your idea.' },
-                profile: { t: 'My Profile', s: 'Manage your contact details and skills.' }
+                profile: { t: 'My Profile', s: 'Manage your contact details and skills.' },
+                community: { t: 'Community Feed', s: 'Connect, share, and grow with the entire Foundera community.' }
             };
             
             if(titles[currentTab]) {
@@ -634,6 +635,7 @@
                     case 'post': content.innerHTML = renderPostIdea(); break;
                     case 'roadmap': content.innerHTML = renderRoadmap(); break;
                     case 'profile': content.innerHTML = renderProfile(); break;
+                    case 'community': content.innerHTML = renderCommunity(); break;
                 }
                 lucide.createIcons();
                 content.style.opacity = '1';
@@ -722,6 +724,14 @@
                                 <div>
                                     <h4 class="font-bold text-white text-md">Investors</h4>
                                     <p class="text-sm text-gray-400 mt-1">Look for potential funding</p>
+                                </div>
+                            </button>
+
+                            <button onclick="setTab('community')" class="p-5 bg-gray-900/50 rounded-xl border border-gray-700 hover:border-indigo-500 transition-all flex items-center gap-4 text-left group">
+                                <div class="bg-indigo-500/20 p-3 rounded-lg group-hover:bg-indigo-500 group-hover:text-white transition-colors text-indigo-400"><i data-lucide="message-circle" class="w-6 h-6"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-white text-md">Community</h4>
+                                    <p class="text-sm text-gray-400 mt-1">Share &amp; connect with everyone</p>
                                 </div>
                             </button>
                         </div>
@@ -1491,14 +1501,17 @@
             updateStartupNameDisplay();
             // Load real data from Firebase (investors + job seekers)
             loadFirebaseData();
-            // Go to overview tab
-            setTab('overview');
+            // Go to community tab
+            setTab('community');
         }).catch(function() {
             updateHeaderAvatar();
             updateStartupNameDisplay();
             loadFirebaseData();
-            setTab('overview');
+            setTab('community');
         });
+        
+        // Start real-time community posts listener
+        fetchCommunityPosts();
         
         lucide.createIcons();
 

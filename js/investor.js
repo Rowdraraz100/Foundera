@@ -209,7 +209,8 @@
                 explore: { t: 'AI Startup Matching', s: 'Discover startups that match your investment criteria.' },
                 founders: { t: 'Browse Founders', s: 'Discover founders and read about their core ideas.' },
                 portfolio: { t: 'My Portfolio', s: 'Track the performance of your investments.' },
-                watchlist: { t: 'Watchlist', s: 'Startups you are currently monitoring.' }
+                watchlist: { t: 'Watchlist', s: 'Startups you are currently monitoring.' },
+                community: { t: 'Community Feed', s: 'Connect, share, and grow with the entire Foundera community.' }
             };
             
             if(titles[currentTab]) {
@@ -226,6 +227,7 @@
                     case 'founders': content.innerHTML = renderFounders(); break;
                     case 'portfolio': content.innerHTML = renderPortfolio(); break;
                     case 'watchlist': content.innerHTML = renderWatchlist(); break;
+                    case 'community': content.innerHTML = renderCommunity(); break;
                 }
                 lucide.createIcons();
                 content.style.opacity = '1';
@@ -246,6 +248,9 @@
                             </button>
                             <button onclick="setTab('founders')" class="bg-gray-700 hover:bg-gray-600 text-white border border-gray-600 px-8 py-3 rounded-xl font-bold flex items-center shadow-lg w-max transition-colors">
                                 <i data-lucide="users" class="w-5 h-5 mr-2"></i> Browse Founders
+                            </button>
+                            <button onclick="setTab('community')" class="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white px-8 py-3 rounded-xl font-bold flex items-center shadow-lg w-max transition-colors">
+                                <i data-lucide="message-circle" class="w-5 h-5 mr-2"></i> Community Feed
                             </button>
                         </div>
                     </div>
@@ -634,10 +639,13 @@ function toggleMobileSidebar() {
         
         // Load real founders data from Firebase
         fetchFoundersFromFirebase().then(function() {
-            setTab('overview');
+            setTab('community');
         }).catch(function() {
-            setTab('overview');
+            setTab('community');
         });
+        
+        // Start real-time community posts listener
+        fetchCommunityPosts();
 
 // --- PRELOADER ---
 window.addEventListener('load', function() {
