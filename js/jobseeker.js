@@ -747,7 +747,8 @@
                 community: { t: 'Community Feed', s: 'Connect, share, and grow with the entire Foundera community.' },
                 seekers: { t: 'Browse Job Seekers', s: 'Discover other talented job seekers in the community.' },
                 applications: { t: 'My Applications', s: 'Track your ongoing job applications.' },
-                saved: { t: 'Saved Opportunities', s: 'Jobs you have bookmarked for later.' }
+                saved: { t: 'Saved Opportunities', s: 'Jobs you have bookmarked for later.' },
+                myposts: { t: 'My Posts', s: 'View, edit, and manage your community posts.' }
             };
             
             if(titles[currentTab]) {
@@ -767,6 +768,7 @@
                     case 'seekers': content.innerHTML = renderBrowseSeekers(); break;
                     case 'applications': content.innerHTML = renderApplications(); break;
                     case 'saved': content.innerHTML = renderSavedJobs(); break;
+                    case 'myposts': content.innerHTML = renderMyPosts(); break;
                 }
                 lucide.createIcons();
                 requestAnimationFrame(function() { content.style.opacity = '1'; });
@@ -1034,7 +1036,7 @@
                     </div>
 
                     <!-- Community Posts -->
-                    ${window.renderUserCommunityPosts ? window.renderUserCommunityPosts(profileData.email ? profileData.email.replace(/[.#$\[\]]/g, '_') : '', profileData.name) : ''}
+                    ${window.renderUserCommunityPostsFull ? window.renderUserCommunityPostsFull(profileData.email ? profileData.email.replace(/[.#$\[\]]/g, '_') : '', profileData.name) : ''}
 
                     <!-- Save All Changes -->
                     <div class="sticky bottom-4 z-40">

@@ -220,7 +220,8 @@
                 founders: { t: 'Browse Founders', s: 'Discover founders and read about their core ideas.' },
                 portfolio: { t: 'My Portfolio', s: 'Track the performance of your investments.' },
                 watchlist: { t: 'Watchlist', s: 'Startups you are currently monitoring.' },
-                community: { t: 'Community Feed', s: 'Connect, share, and grow with the entire Foundera community.' }
+                community: { t: 'Community Feed', s: 'Connect, share, and grow with the entire Foundera community.' },
+                myposts: { t: 'My Posts', s: 'View, edit, and manage your community posts.' }
             };
             
             if(titles[currentTab]) {
@@ -239,6 +240,7 @@
                     case 'portfolio': content.innerHTML = renderPortfolio(); break;
                     case 'watchlist': content.innerHTML = renderWatchlist(); break;
                     case 'community': content.innerHTML = renderCommunity(); break;
+                    case 'myposts': content.innerHTML = renderMyPosts(); break;
                 }
                 lucide.createIcons();
                 requestAnimationFrame(function() { content.style.opacity = '1'; });
@@ -361,7 +363,7 @@
                     </div>
 
                     <!-- Community Posts -->
-                    ${window.renderUserCommunityPosts ? window.renderUserCommunityPosts(profileData.email ? profileData.email.replace(/[.#$\[\]]/g, '_') : '', profileData.name) : ''}
+                    ${window.renderUserCommunityPostsFull ? window.renderUserCommunityPostsFull(profileData.email ? profileData.email.replace(/[.#$\[\]]/g, '_') : '', profileData.name) : ''}
                 </div>
             `;
         }

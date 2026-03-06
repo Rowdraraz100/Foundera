@@ -791,12 +791,7 @@ body {
         overflow-wrap: break-word;
     }
     
-    /* Notification bell */
-    .notification-panel {
-        width: calc(100vw - 1rem) !important;
-        max-width: 100% !important;
-        right: 0.5rem !important;
-    }
+    /* Notification bell - handled by dedicated media query above */
 }
 
 @media (max-width: 480px) {
@@ -835,7 +830,7 @@ input:focus, textarea:focus, select:focus {
    ============================================================ */
 .sidebar {
     will-change: transform;
-    contain: layout style;
+    contain: style;
 }
 #content {
     will-change: opacity;
@@ -871,6 +866,19 @@ input:focus, textarea:focus, select:focus {
     z-index: 100;
     animation: notifSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
+@media (max-width: 768px) {
+    .notification-panel {
+        position: fixed;
+        top: 3.5rem;
+        left: 0.5rem;
+        right: 0.5rem;
+        width: auto;
+        max-width: calc(100vw - 1rem);
+        max-height: calc(100vh - 5rem);
+        border-radius: 1rem;
+        z-index: 200;
+    }
+}
 @keyframes notifSlideIn {
     from { opacity: 0; transform: translateY(-8px) scale(0.96); }
     to { opacity: 1; transform: translateY(0) scale(1); }
@@ -893,6 +901,75 @@ input:focus, textarea:focus, select:focus {
 }
 .notification-item:last-child {
     border-bottom: none;
+}
+@media (max-width: 480px) {
+    .notification-item {
+        gap: 0.5rem;
+        padding: 0.75rem;
+    }
+    .notification-item img,
+    .notification-item .w-9 {
+        width: 2rem;
+        height: 2rem;
+    }
+    .notification-item p.text-sm {
+        font-size: 0.75rem;
+    }
+}
+
+/* ============================================================
+   REACTION VIEWER MODAL
+   ============================================================ */
+.reaction-viewer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 75;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    animation: notifSlideIn 0.2s ease-out;
+}
+.reaction-viewer-modal {
+    background: rgb(31, 41, 55);
+    border: 1px solid rgba(75, 85, 99, 0.5);
+    border-radius: 1rem;
+    width: 100%;
+    max-width: 400px;
+    max-height: 70vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.reaction-viewer-modal .reaction-user-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(75, 85, 99, 0.3);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.reaction-viewer-modal .reaction-user-item:hover {
+    background: rgba(99, 102, 241, 0.08);
+}
+.reaction-viewer-modal .reaction-user-item:last-child {
+    border-bottom: none;
+}
+
+/* ============================================================
+   MY POSTS TAB
+   ============================================================ */
+.my-post-card {
+    background: rgba(31, 41, 55, 0.4);
+    border: 1px solid rgba(75, 85, 99, 0.4);
+    border-radius: 1rem;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+.my-post-card:hover {
+    border-color: rgba(99, 102, 241, 0.3);
 }
 
 /* Profile viewer clickable in community */

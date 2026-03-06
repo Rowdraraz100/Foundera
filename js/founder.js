@@ -654,7 +654,8 @@
                 post: { t: 'Share Your Unique Idea', s: 'Provide details to get best AI matches.' },
                 roadmap: { t: 'AI Roadmap Generator', s: 'Generate a step-by-step execution plan for your idea.' },
                 profile: { t: 'My Profile', s: 'Manage your contact details and skills.' },
-                community: { t: 'Community Feed', s: 'Connect, share, and grow with the entire Foundera community.' }
+                community: { t: 'Community Feed', s: 'Connect, share, and grow with the entire Foundera community.' },
+                myposts: { t: 'My Posts', s: 'View, edit, and manage your community posts.' }
             };
             
             if(titles[currentTab]) {
@@ -675,6 +676,7 @@
                     case 'roadmap': content.innerHTML = renderRoadmap(); break;
                     case 'profile': content.innerHTML = renderProfile(); break;
                     case 'community': content.innerHTML = renderCommunity(); break;
+                    case 'myposts': content.innerHTML = renderMyPosts(); break;
                 }
                 lucide.createIcons();
                 requestAnimationFrame(function() { content.style.opacity = '1'; });
@@ -1298,7 +1300,7 @@
                 </div>
 
                 <!-- Community Posts -->
-                ${window.renderUserCommunityPosts ? window.renderUserCommunityPosts(profileData.email ? profileData.email.replace(/[.#$\[\]]/g, '_') : '', profileData.name) : ''}
+                ${window.renderUserCommunityPostsFull ? window.renderUserCommunityPostsFull(profileData.email ? profileData.email.replace(/[.#$\[\]]/g, '_') : '', profileData.name) : ''}
             `;
         }
 

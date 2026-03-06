@@ -47,8 +47,8 @@
     
     <div class="flex">
         <!-- Sidebar -->
-        <aside id="sidebar" class="sidebar w-64 bg-gray-800/50 backdrop-blur-xl min-h-screen fixed left-0 top-0 border-r border-gray-700/50 z-50 overflow-y-auto transition-transform duration-300">
-            <div class="p-6">
+        <aside id="sidebar" class="sidebar w-64 bg-gray-800/50 backdrop-blur-xl h-screen fixed left-0 top-0 border-r border-gray-700/50 z-50 transition-transform duration-300 flex flex-col">
+            <div class="p-6 flex-1 overflow-y-auto">
                 <a href="founder.html" class="flex items-center gap-3 mb-4 cursor-pointer hover:opacity-80 transition-opacity">
                     <img src="images/founderaLogo.jpeg" alt="Foundera" class="w-10 h-10 rounded-xl object-cover shadow-lg shadow-blue-500/30">
                     <span class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Foundera</span>
@@ -81,13 +81,16 @@
                     <a href="#" onclick="setTab('talent')" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300" id="nav-talent">
                         <i data-lucide="users" class="w-5 h-5"></i><span>Find Talent</span>
                     </a>
+                    <a href="#" onclick="setTab('myposts')" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300" id="nav-myposts">
+                        <i data-lucide="file-text" class="w-5 h-5 text-orange-400"></i><span>My Posts</span>
+                    </a>
                     <a href="#" onclick="setTab('investors')" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300" id="nav-investors">
                         <i data-lucide="trending-up" class="w-5 h-5"></i><span>Investors</span>
                     </a>
                 </nav>
             </div>
             
-            <div class="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-700/50">
+            <div class="p-6 pt-0 border-t border-gray-700/50 shrink-0">
                 <a href="#" onclick="handleLogout()" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all">
                     <i data-lucide="log-out" class="w-5 h-5"></i><span>Logout</span>
                 </a>

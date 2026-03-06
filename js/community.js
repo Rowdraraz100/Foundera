@@ -9,6 +9,7 @@
     window._communityListener = null;
     window._communityFilter = 'all';
     window._communityLoaded = false;
+    window._communityAnimated = false;
 
     // --- LOAD CACHED POSTS FROM LOCALSTORAGE FOR INSTANT DISPLAY ---
     try {
@@ -185,7 +186,13 @@
             window.buildNotifications();
             updateNotifBadge();
             if (typeof currentTab !== 'undefined' && currentTab === 'community') {
-                if (typeof renderContent === 'function') renderContent();
+                // Direct DOM update without opacity fade to prevent layout shift/jump
+                var contentEl = document.getElementById('content');
+                if (contentEl) {
+                    window._communityAnimated = true;
+                    contentEl.innerHTML = window.renderCommunity();
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }
             }
         });
     };
@@ -309,7 +316,12 @@
     // --- FILTER ---
     window.setCommunityFilter = function(filter) {
         window._communityFilter = filter;
-        if (typeof renderContent === 'function') renderContent();
+        // Direct DOM update without opacity fade to prevent flicker
+        var contentEl = document.getElementById('content');
+        if (contentEl) {
+            contentEl.innerHTML = window.renderCommunity();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
     };
 
     // --- FILE PREVIEW HANDLERS ---
@@ -408,7 +420,9 @@
                 var isMyPost = post.authorKey === myKey;
                 var delay = Math.min(idx * 0.06, 0.6);
 
-                var html = '<div class="community-post-card community-post-enter community-animate-slide-up" style="animation-delay:' + delay + 's">' +
+                var animCls = window._communityAnimated ? '' : ' community-post-enter community-animate-slide-up';
+                var animStyle = window._communityAnimated ? '' : 'animation-delay:' + delay + 's';
+                var html = '<div class="community-post-card' + animCls + '" style="' + animStyle + '">' +
                     '<div class="p-4 sm:p-6">' +
                         // Header
                         '<div class="flex items-start justify-between gap-2 mb-4">' +
@@ -438,8 +452,8 @@
                         (post.imageBase64 ? '<div class="mb-4 rounded-xl overflow-hidden border border-gray-700/50"><img src="' + post.imageBase64 + '" class="w-full max-h-96 object-cover cursor-pointer hover:opacity-90 transition" onclick="openImageLightbox(this.src)"></div>' : '') +
                         // PDF attachment
                         (post.pdfBase64 ? '<div class="mb-4 flex items-center gap-3 bg-gray-900/60 p-3 rounded-xl border border-gray-700/50"><div class="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center shrink-0"><i data-lucide="file-text" class="w-5 h-5 text-red-400"></i></div><div class="flex-1 min-w-0"><p class="text-sm font-medium text-white truncate">' + _escHtml(post.pdfFileName || 'Document.pdf') + '</p><p class="text-xs text-gray-500">PDF Attachment</p></div><a href="' + post.pdfBase64 + '" download="' + _escHtml(post.pdfFileName || 'document.pdf') + '" class="text-indigo-400 hover:text-indigo-300 p-2 transition"><i data-lucide="download" class="w-5 h-5"></i></a></div>' : '') +
-                        // Reaction summary
-                        (totalReactions > 0 ? '<div class="flex items-center gap-3 text-xs text-gray-400 mb-3 pb-3 border-b border-gray-700/30">' +
+                        // Reaction summary — clickable to see who reacted
+                        (totalReactions > 0 ? '<div onclick="showReactionViewer(\'' + post._key + '\')" class="flex items-center gap-3 text-xs text-gray-400 mb-3 pb-3 border-b border-gray-700/30 cursor-pointer hover:text-gray-300 transition">' +
                             (likeCount > 0 ? '<span class="flex items-center gap-1">\u{1F44D} ' + likeCount + '</span>' : '') +
                             (celebrateCount > 0 ? '<span class="flex items-center gap-1">\u{1F389} ' + celebrateCount + '</span>' : '') +
                             (insightfulCount > 0 ? '<span class="flex items-center gap-1">\u{1F9E0} ' + insightfulCount + '</span>' : '') +
@@ -456,14 +470,14 @@
                             '</div>' +
                             '<button onclick="toggleCommunityComments(\'' + post._key + '\')" class="text-xs text-gray-500 hover:text-gray-300 transition flex items-center gap-1"><i data-lucide="message-square" class="w-3.5 h-3.5"></i> ' + comments.length + '</button>' +
                         '</div>' +
-                        // Comments section (hidden by default if > 2)
+                        // Comments section
                         '<div id="comments-' + post._key + '" class="' + (comments.length > 2 ? '' : '') + '">' +
                             (comments.length > 0 ? '<div class="space-y-2.5 mb-3">' + comments.map(function(c) {
                                 return '<div class="flex items-start gap-2.5 community-comment-enter">' +
-                                    (c.authorPic ? '<img src="' + c.authorPic + '" class="w-7 h-7 rounded-full object-cover mt-0.5 ring-1 ring-gray-700">' : '<div class="w-7 h-7 bg-gray-700 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-400 mt-0.5 shrink-0">' + (c.authorName ? c.authorName.charAt(0).toUpperCase() : '?') + '</div>') +
+                                    (c.authorPic ? '<img src="' + c.authorPic + '" class="w-7 h-7 rounded-full object-cover mt-0.5 ring-1 ring-gray-700 cursor-pointer hover:opacity-80 transition" onclick="viewCommunityProfile(\'' + _escHtml(c.authorKey || '') + '\',\'' + _escHtml(c.authorRole || 'Job Seeker') + '\')">' : '<div class="w-7 h-7 bg-gray-700 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-400 mt-0.5 shrink-0 cursor-pointer hover:opacity-80 transition" onclick="viewCommunityProfile(\'' + _escHtml(c.authorKey || '') + '\',\'' + _escHtml(c.authorRole || 'Job Seeker') + '\')">' + (c.authorName ? c.authorName.charAt(0).toUpperCase() : '?') + '</div>') +
                                     '<div class="bg-gray-900/50 px-3 py-2 rounded-xl flex-1">' +
                                         '<div class="flex items-center gap-2">' +
-                                            '<span class="text-xs font-bold text-white">' + _escHtml(c.authorName || 'Anonymous') + '</span>' +
+                                            '<span class="text-xs font-bold text-white cursor-pointer hover:underline" onclick="viewCommunityProfile(\'' + _escHtml(c.authorKey || '') + '\',\'' + _escHtml(c.authorRole || 'Job Seeker') + '\')">' + _escHtml(c.authorName || 'Anonymous') + '</span>' +
                                             _roleBadge(c.authorRole || '') +
                                             '<span class="text-[10px] text-gray-600">' + _timeAgo(c.timestamp) + '</span>' +
                                         '</div>' +
@@ -490,7 +504,8 @@
         });
 
         // Build compose card
-        var composeHtml = '<div class="community-compose-card community-post-enter community-animate-slide-up" style="animation-delay:0.1s">' +
+        var composeAnimCls = window._communityAnimated ? '' : ' community-post-enter community-animate-slide-up';
+        var composeHtml = '<div class="community-compose-card' + composeAnimCls + '"' + (window._communityAnimated ? '' : ' style="animation-delay:0.1s"') + '>' +
             '<div class="p-4 sm:p-6">' +
                 '<div class="flex items-start gap-2 sm:gap-4">' +
                     '<div class="shrink-0 hidden sm:block">' +
@@ -529,7 +544,8 @@
         '</div>';
 
         // Community header with animation
-        var headerHtml = '<div class="community-header-banner community-post-enter community-animate-fade-scale">' +
+        var headerAnimCls = window._communityAnimated ? '' : ' community-post-enter community-animate-fade-scale';
+        var headerHtml = '<div class="community-header-banner' + headerAnimCls + '">' +
             '<div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-900/40 via-purple-900/30 to-pink-900/20 border border-indigo-500/20 p-4 sm:p-8 mb-2">' +
                 '<div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.15),transparent_50%)]"></div>' +
                 '<div class="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>' +
@@ -552,6 +568,11 @@
                 '</div>' +
             '</div>' +
         '</div>';
+
+        // Mark animated after first render so subsequent renders skip entrance animations
+        if (!window._communityAnimated) {
+            setTimeout(function() { window._communityAnimated = true; }, 800);
+        }
 
         return '<div class="max-w-3xl mx-auto space-y-5">' +
             headerHtml +
@@ -710,16 +731,22 @@
             '</div>' +
             itemsHtml +
         '</div>';
-        var container = document.getElementById('notif-bell-container');
-        if (container) {
-            container.insertAdjacentHTML('beforeend', panelHtml);
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+        var isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+            // On mobile, append to body for better positioning
+            document.body.insertAdjacentHTML('beforeend', panelHtml);
+        } else {
+            var container = document.getElementById('notif-bell-container');
+            if (container) {
+                container.insertAdjacentHTML('beforeend', panelHtml);
+            }
         }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     };
 
     // Close notif panel on outside click
     document.addEventListener('click', function(e) {
-        if (window._notifPanelOpen && !e.target.closest('#notif-bell-container')) {
+        if (window._notifPanelOpen && !e.target.closest('#notif-bell-container') && !e.target.closest('#notif-panel')) {
             var panel = document.getElementById('notif-panel');
             if (panel) panel.remove();
             window._notifPanelOpen = false;
@@ -842,8 +869,8 @@
             (github ? '<a href="' + _escHtml(github) + '" target="_blank" class="bg-gray-900 border border-gray-700 hover:border-gray-500/50 px-3 py-2 rounded-lg flex items-center gap-2 text-xs text-gray-300 transition"><i data-lucide="github" class="w-3.5 h-3.5 text-gray-400"></i>GitHub</a>' : '') +
             '</div>';
 
-        // Community posts for this user
-        var communityPostsHTML = window.renderUserCommunityPosts ? window.renderUserCommunityPosts(authorKey, name) : '';
+        // Community posts for this user — full version with comments
+        var communityPostsHTML = window.renderUserCommunityPostsFull ? window.renderUserCommunityPostsFull(authorKey, name) : (window.renderUserCommunityPosts ? window.renderUserCommunityPosts(authorKey, name) : '');
 
         var modal = document.createElement('div');
         modal.id = 'community-profile-modal';
@@ -914,6 +941,255 @@
             (name ? '<p class="text-white font-bold text-lg mt-4">' + _escHtml(name) + '</p>' : '');
         document.body.appendChild(lightbox);
         if (typeof lucide !== 'undefined') lucide.createIcons();
+    };
+
+    // ============================================================
+    // REACTION VIEWER — Show who reacted to a post
+    // ============================================================
+    window.showReactionViewer = function(postKey) {
+        var post = window._communityPosts.find(function(p) { return p._key === postKey; });
+        if (!post || !post.reactions) return;
+        var reactions = post.reactions;
+        var reactorKeys = Object.keys(reactions);
+        if (reactorKeys.length === 0) return;
+
+        // Build known users map
+        var knownUsers = {};
+        window._communityPosts.forEach(function(p) {
+            if (p.authorKey && p.authorName) knownUsers[p.authorKey] = { name: p.authorName, pic: p.authorPic || '', role: p.authorRole || 'Job Seeker' };
+            var coms = p.comments || {};
+            Object.keys(coms).forEach(function(ck) {
+                var c = coms[ck];
+                if (c.authorKey && c.authorName) knownUsers[c.authorKey] = { name: c.authorName, pic: c.authorPic || '', role: c.authorRole || 'Job Seeker' };
+            });
+        });
+
+        var emojiMap = { like: '\u{1F44D}', celebrate: '\u{1F389}', insightful: '\u{1F9E0}', support: '\u{2764}\u{FE0F}' };
+        var itemsHtml = reactorKeys.map(function(rk) {
+            var user = knownUsers[rk] || { name: 'Someone', pic: '', role: 'Job Seeker' };
+            var emoji = emojiMap[reactions[rk]] || '\u{1F44D}';
+            var avatar = user.pic
+                ? '<img src="' + user.pic + '" class="w-9 h-9 rounded-full object-cover shrink-0">'
+                : '<div class="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0">' + (user.name ? user.name.charAt(0).toUpperCase() : '?') + '</div>';
+            return '<div class="reaction-user-item" onclick="document.getElementById(\'reaction-viewer-overlay\').remove();viewCommunityProfile(\'' + _escHtml(rk) + '\',\'' + _escHtml(user.role) + '\')">' +
+                avatar +
+                '<div class="flex-1 min-w-0"><p class="text-sm font-semibold text-white truncate">' + _escHtml(user.name) + '</p><p class="text-xs text-gray-500">' + _escHtml(user.role) + '</p></div>' +
+                '<span class="text-lg">' + emoji + '</span>' +
+            '</div>';
+        }).join('');
+
+        var existing = document.getElementById('reaction-viewer-overlay');
+        if (existing) existing.remove();
+
+        var overlay = document.createElement('div');
+        overlay.id = 'reaction-viewer-overlay';
+        overlay.className = 'reaction-viewer-overlay';
+        overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+        overlay.innerHTML = '<div class="reaction-viewer-modal">' +
+            '<div class="px-4 py-3 border-b border-gray-700/50 flex items-center justify-between sticky top-0 bg-gray-800 rounded-t-xl z-10">' +
+                '<h3 class="font-bold text-white text-sm">\u{1F44D} Reactions (' + reactorKeys.length + ')</h3>' +
+                '<button onclick="document.getElementById(\'reaction-viewer-overlay\').remove()" class="text-gray-500 hover:text-white p-1 transition"><i data-lucide="x" class="w-4 h-4"></i></button>' +
+            '</div>' +
+            itemsHtml +
+        '</div>';
+        document.body.appendChild(overlay);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    };
+
+    // ============================================================
+    // MY POSTS — View, Edit, Delete own community posts
+    // ============================================================
+    window._editingPostKey = null;
+
+    window.renderMyPosts = function() {
+        var user = _getUser();
+        if (!user.key) return '<div class="text-center py-20"><p class="text-gray-500">Please log in to see your posts.</p></div>';
+        var myPosts = window._communityPosts.filter(function(p) { return p.authorKey === user.key; });
+
+        if (myPosts.length === 0) {
+            return '<div class="max-w-3xl mx-auto">' +
+                '<div class="text-center py-20 bg-gray-800/30 rounded-2xl border border-gray-700/30">' +
+                    '<div class="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-full flex items-center justify-center"><i data-lucide="file-text" class="w-10 h-10 text-indigo-400"></i></div>' +
+                    '<h3 class="text-xl font-bold text-white mb-2">No Posts Yet</h3>' +
+                    '<p class="text-gray-500 text-sm max-w-md mx-auto mb-6">You haven\'t posted anything in the community yet. Go to the Community tab to share something!</p>' +
+                    '<button onclick="setTab(\'community\')" class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:shadow-lg transition">Go to Community</button>' +
+                '</div>' +
+            '</div>';
+        }
+
+        var postsHtml = myPosts.map(function(post) {
+            var timeAgo = _timeAgo(post.timestamp);
+            var cat = CATEGORIES[post.category] || CATEGORIES.general;
+            var cm = COLOR_MAP[cat.color] || COLOR_MAP.gray;
+            var reactions = post.reactions || {};
+            var totalReactions = Object.keys(reactions).length;
+            var comments = post.comments ? Object.keys(post.comments).map(function(k) { var c = post.comments[k]; c._key = k; return c; }).sort(function(a,b) { return (a.timestamp||0) - (b.timestamp||0); }) : [];
+
+            return '<div class="my-post-card community-animate-slide-up">' +
+                '<div class="p-4 sm:p-6">' +
+                    // Header with actions
+                    '<div class="flex items-start justify-between gap-2 mb-3">' +
+                        '<div class="flex items-center gap-2">' +
+                            '<span class="text-xs px-2 py-0.5 rounded-full font-semibold ' + cm.bg + ' ' + cm.text + ' border ' + cm.border + '">' + cat.emoji + ' ' + cat.label + '</span>' +
+                            '<span class="text-xs text-gray-500">' + timeAgo + '</span>' +
+                        '</div>' +
+                        '<div class="flex items-center gap-1">' +
+                            '<button onclick="startEditPost(\'' + post._key + '\')" class="text-gray-500 hover:text-indigo-400 p-1.5 rounded-lg hover:bg-indigo-500/10 transition" title="Edit post"><i data-lucide="pencil" class="w-4 h-4"></i></button>' +
+                            '<button onclick="deleteCommunityPost(\'' + post._key + '\')" class="text-gray-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition" title="Delete post"><i data-lucide="trash-2" class="w-4 h-4"></i></button>' +
+                        '</div>' +
+                    '</div>' +
+                    // Content
+                    '<div id="my-post-content-' + post._key + '">' +
+                        '<p class="text-gray-200 text-sm leading-relaxed whitespace-pre-line mb-3">' + _escHtml(post.content) + '</p>' +
+                    '</div>' +
+                    // Image
+                    (post.imageBase64 ? '<div class="mb-3 rounded-xl overflow-hidden border border-gray-700/50"><img src="' + post.imageBase64 + '" class="w-full max-h-64 object-cover cursor-pointer" onclick="openImageLightbox(this.src)"></div>' : '') +
+                    // PDF
+                    (post.pdfBase64 ? '<div class="mb-3 flex items-center gap-2 bg-gray-900/60 p-2 rounded-xl border border-gray-700/50 text-xs"><i data-lucide="file-text" class="w-4 h-4 text-red-400 shrink-0"></i><span class="text-gray-300 truncate flex-1">' + _escHtml(post.pdfFileName || 'Document.pdf') + '</span></div>' : '') +
+                    // Stats
+                    '<div class="flex items-center gap-4 text-xs text-gray-500 pt-3 border-t border-gray-700/30">' +
+                        (totalReactions > 0 ? '<span onclick="showReactionViewer(\'' + post._key + '\')" class="flex items-center gap-1 cursor-pointer hover:text-gray-300 transition">\u{1F44D} ' + totalReactions + ' reaction' + (totalReactions > 1 ? 's' : '') + '</span>' : '<span class="text-gray-600">No reactions yet</span>') +
+                        '<span class="flex items-center gap-1"><i data-lucide="message-square" class="w-3.5 h-3.5"></i> ' + comments.length + ' comment' + (comments.length !== 1 ? 's' : '') + '</span>' +
+                    '</div>' +
+                    // Comments viewer
+                    (comments.length > 0 ? '<div class="mt-3 space-y-2">' + comments.map(function(c) {
+                        return '<div class="flex items-start gap-2">' +
+                            (c.authorPic ? '<img src="' + c.authorPic + '" class="w-6 h-6 rounded-full object-cover mt-0.5 cursor-pointer hover:opacity-80" onclick="viewCommunityProfile(\'' + _escHtml(c.authorKey || '') + '\',\'' + _escHtml(c.authorRole || 'Job Seeker') + '\')">' : '<div class="w-6 h-6 bg-gray-700 rounded-full flex items-center justify-center text-[9px] font-bold text-gray-400 mt-0.5 shrink-0 cursor-pointer" onclick="viewCommunityProfile(\'' + _escHtml(c.authorKey || '') + '\',\'' + _escHtml(c.authorRole || 'Job Seeker') + '\')">' + (c.authorName ? c.authorName.charAt(0).toUpperCase() : '?') + '</div>') +
+                            '<div class="bg-gray-900/40 px-2.5 py-1.5 rounded-lg flex-1">' +
+                                '<span class="text-[11px] font-bold text-white cursor-pointer hover:underline" onclick="viewCommunityProfile(\'' + _escHtml(c.authorKey || '') + '\',\'' + _escHtml(c.authorRole || 'Job Seeker') + '\')">' + _escHtml(c.authorName || 'Anonymous') + '</span>' +
+                                '<span class="text-[10px] text-gray-600 ml-2">' + _timeAgo(c.timestamp) + '</span>' +
+                                '<p class="text-[11px] text-gray-300 mt-0.5">' + _escHtml(c.text) + '</p>' +
+                            '</div>' +
+                        '</div>';
+                    }).join('') + '</div>' : '') +
+                '</div>' +
+            '</div>';
+        }).join('');
+
+        return '<div class="max-w-3xl mx-auto space-y-4">' +
+            '<div class="flex items-center justify-between mb-2">' +
+                '<p class="text-sm text-gray-400"><i data-lucide="file-text" class="w-4 h-4 inline mr-1"></i> You have <strong class="text-white">' + myPosts.length + '</strong> post' + (myPosts.length !== 1 ? 's' : '') + '</p>' +
+                '<button onclick="setTab(\'community\')" class="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition"><i data-lucide="plus" class="w-3.5 h-3.5"></i> New Post</button>' +
+            '</div>' +
+            postsHtml +
+        '</div>';
+    };
+
+    // Start editing a post
+    window.startEditPost = function(postKey) {
+        var post = window._communityPosts.find(function(p) { return p._key === postKey; });
+        if (!post) return;
+        window._editingPostKey = postKey;
+
+        var existing = document.getElementById('edit-post-modal');
+        if (existing) existing.remove();
+
+        var catOptions = '';
+        Object.keys(CATEGORIES).forEach(function(key) {
+            var cat = CATEGORIES[key];
+            catOptions += '<option value="' + key + '"' + (post.category === key ? ' selected' : '') + '>' + cat.emoji + ' ' + cat.label + '</option>';
+        });
+
+        var modal = document.createElement('div');
+        modal.id = 'edit-post-modal';
+        modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-2 sm:p-4';
+        modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+        modal.innerHTML = '<div class="bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in">' +
+            '<div class="p-4 sm:p-6 border-b border-gray-700 flex justify-between items-center">' +
+                '<h2 class="text-lg font-bold text-white flex items-center gap-2"><i data-lucide="pencil" class="w-5 h-5 text-indigo-400"></i> Edit Post</h2>' +
+                '<button onclick="document.getElementById(\'edit-post-modal\').remove()" class="text-gray-400 hover:text-white p-1"><i data-lucide="x" class="w-5 h-5"></i></button>' +
+            '</div>' +
+            '<form onsubmit="saveEditPost(event)" class="p-4 sm:p-6 space-y-4">' +
+                '<textarea id="edit-post-content" rows="5" required class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-white text-sm resize-none placeholder-gray-600">' + _escHtml(post.content) + '</textarea>' +
+                '<select id="edit-post-category" class="w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white outline-none focus:ring-1 focus:ring-indigo-500">' + catOptions + '</select>' +
+                '<div class="flex gap-3 pt-2">' +
+                    '<button type="button" onclick="document.getElementById(\'edit-post-modal\').remove()" class="px-5 py-2.5 border border-gray-600 rounded-xl font-medium text-sm hover:bg-gray-700 transition text-gray-300">Cancel</button>' +
+                    '<button type="submit" class="flex-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:shadow-lg transition flex items-center justify-center gap-2"><i data-lucide="save" class="w-4 h-4"></i> Save Changes</button>' +
+                '</div>' +
+            '</form>' +
+        '</div>';
+        document.body.appendChild(modal);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    };
+
+    // Save edited post
+    window.saveEditPost = function(event) {
+        event.preventDefault();
+        if (!window._editingPostKey) return;
+        var content = document.getElementById('edit-post-content').value.trim();
+        var category = document.getElementById('edit-post-category').value;
+        if (!content) return;
+
+        firebase.database().ref('community_posts/' + window._editingPostKey).update({
+            content: content,
+            category: category
+        }).then(function() {
+            var modal = document.getElementById('edit-post-modal');
+            if (modal) modal.remove();
+            window._editingPostKey = null;
+        }).catch(function(e) {
+            console.error('Error updating post:', e);
+            alert('Failed to update post.');
+        });
+    };
+
+    // ============================================================
+    // ENHANCED PROFILE COMMUNITY POSTS — Full posts with comments
+    // ============================================================
+    window.renderUserCommunityPostsFull = function(userKey, userName) {
+        var posts = window.getUserCommunityPosts(userKey);
+        if (posts.length === 0) {
+            return '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-8 shadow-lg">' +
+                '<h2 class="text-xl font-bold text-white mb-4 flex items-center"><i data-lucide="message-circle" class="w-5 h-5 mr-2 text-indigo-400"></i>Community Posts</h2>' +
+                '<div class="text-center py-8">' +
+                    '<div class="w-16 h-16 mx-auto mb-4 bg-gray-700/30 rounded-full flex items-center justify-center"><i data-lucide="message-circle" class="w-8 h-8 text-gray-600"></i></div>' +
+                    '<p class="text-gray-500 text-sm">No community posts yet.</p>' +
+                '</div>' +
+            '</div>';
+        }
+        var postsHtml = posts.map(function(post) {
+            var cat = CATEGORIES[post.category] || CATEGORIES.general;
+            var cm = COLOR_MAP[cat.color] || COLOR_MAP.gray;
+            var timeAgo = _timeAgo(post.timestamp);
+            var reactions = post.reactions || {};
+            var totalReactions = Object.keys(reactions).length;
+            var comments = post.comments ? Object.keys(post.comments).map(function(k) { var c = post.comments[k]; c._key = k; return c; }).sort(function(a,b) { return (a.timestamp||0) - (b.timestamp||0); }) : [];
+
+            var commentsHtml = '';
+            if (comments.length > 0) {
+                commentsHtml = '<div class="mt-3 pt-3 border-t border-gray-700/30 space-y-2">' +
+                    '<p class="text-xs text-gray-500 font-semibold mb-1"><i data-lucide="message-square" class="w-3 h-3 inline mr-1"></i> Comments (' + comments.length + ')</p>' +
+                    comments.map(function(c) {
+                        return '<div class="flex items-start gap-2">' +
+                            (c.authorPic ? '<img src="' + c.authorPic + '" class="w-6 h-6 rounded-full object-cover mt-0.5 cursor-pointer hover:opacity-80" onclick="viewCommunityProfile(\'' + _escHtml(c.authorKey || '') + '\',\'' + _escHtml(c.authorRole || 'Job Seeker') + '\')">' : '<div class="w-6 h-6 bg-gray-700 rounded-full flex items-center justify-center text-[9px] font-bold text-gray-400 mt-0.5 shrink-0 cursor-pointer" onclick="viewCommunityProfile(\'' + _escHtml(c.authorKey || '') + '\',\'' + _escHtml(c.authorRole || 'Job Seeker') + '\')">' + (c.authorName ? c.authorName.charAt(0).toUpperCase() : '?') + '</div>') +
+                            '<div class="bg-gray-900/40 px-2.5 py-1.5 rounded-lg flex-1">' +
+                                '<span class="text-[11px] font-bold text-white cursor-pointer hover:underline" onclick="viewCommunityProfile(\'' + _escHtml(c.authorKey || '') + '\',\'' + _escHtml(c.authorRole || 'Job Seeker') + '\')">' + _escHtml(c.authorName || 'Anonymous') + '</span>' +
+                                '<span class="text-[10px] text-gray-600 ml-2">' + _timeAgo(c.timestamp) + '</span>' +
+                                '<p class="text-[11px] text-gray-300 mt-0.5">' + _escHtml(c.text) + '</p>' +
+                            '</div>' +
+                        '</div>';
+                    }).join('') +
+                '</div>';
+            }
+
+            return '<div class="bg-gray-900/40 rounded-xl border border-gray-700/40 p-4 community-animate-slide-up hover:border-indigo-500/20 transition-all">' +
+                '<div class="flex items-center justify-between mb-3">' +
+                    '<span class="text-xs px-2 py-0.5 rounded-full font-semibold ' + cm.bg + ' ' + cm.text + ' border ' + cm.border + '">' + cat.emoji + ' ' + cat.label + '</span>' +
+                    '<span class="text-xs text-gray-500">' + timeAgo + '</span>' +
+                '</div>' +
+                '<p class="text-gray-200 text-sm leading-relaxed whitespace-pre-line mb-3">' + _escHtml(post.content) + '</p>' +
+                (post.imageBase64 ? '<div class="mb-3 rounded-lg overflow-hidden border border-gray-700/50"><img src="' + post.imageBase64 + '" class="w-full max-h-48 object-cover cursor-pointer" onclick="openImageLightbox(this.src)"></div>' : '') +
+                '<div class="flex items-center gap-4 text-xs text-gray-500">' +
+                    (totalReactions > 0 ? '<span onclick="showReactionViewer(\'' + post._key + '\')" class="flex items-center gap-1 cursor-pointer hover:text-gray-300 transition">\u{1F44D} ' + totalReactions + ' reactions</span>' : '') +
+                    '<span class="flex items-center gap-1"><i data-lucide="message-square" class="w-3 h-3"></i> ' + comments.length + ' comments</span>' +
+                '</div>' +
+                commentsHtml +
+            '</div>';
+        }).join('');
+        return '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6 sm:p-8 shadow-lg">' +
+            '<h2 class="text-xl font-bold text-white mb-6 flex items-center"><i data-lucide="message-circle" class="w-5 h-5 mr-2 text-indigo-400"></i>Community Posts <span class="ml-2 text-sm font-normal text-gray-400">(' + posts.length + ')</span></h2>' +
+            '<div class="space-y-4">' + postsHtml + '</div>' +
+        '</div>';
     };
 
 })();
