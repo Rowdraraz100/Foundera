@@ -9,6 +9,75 @@
     window._communityListener = null;
     window._communityFilter = 'all';
 
+    // --- IMAGE COMPRESSION UTILITY (shared) ---
+    window.compressImageFile = function(file, maxWidth, maxHeight, quality) {
+        return new Promise(function(resolve) {
+            var reader = new FileReader();
+            reader.onload = function(readerEvent) {
+                var img = new Image();
+                img.onload = function() {
+                    var canvas = document.createElement('canvas');
+                    var w = img.width;
+                    var h = img.height;
+                    if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+                    if (h > maxHeight) { w = Math.round(w * maxHeight / h); h = maxHeight; }
+                    canvas.width = w;
+                    canvas.height = h;
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', quality || 0.7));
+                };
+                img.src = readerEvent.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
+    // --- GET USER'S COMMUNITY POSTS ---
+    window.getUserCommunityPosts = function(userKey) {
+        if (!window._communityPosts || !userKey) return [];
+        return window._communityPosts.filter(function(p) { return p.authorKey === userKey; });
+    };
+
+    // --- RENDER USER'S POSTS FOR PROFILE VIEW ---
+    window.renderUserCommunityPosts = function(userKey, userName) {
+        var posts = window.getUserCommunityPosts(userKey);
+        if (posts.length === 0) {
+            return '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-8 shadow-lg">' +
+                '<h2 class="text-xl font-bold text-white mb-4 flex items-center"><i data-lucide="message-circle" class="w-5 h-5 mr-2 text-indigo-400"></i>Community Posts</h2>' +
+                '<div class="text-center py-8">' +
+                    '<div class="w-16 h-16 mx-auto mb-4 bg-gray-700/30 rounded-full flex items-center justify-center"><i data-lucide="message-circle" class="w-8 h-8 text-gray-600"></i></div>' +
+                    '<p class="text-gray-500 text-sm">No community posts yet.</p>' +
+                '</div>' +
+            '</div>';
+        }
+        var postsHtml = posts.map(function(post) {
+            var cat = CATEGORIES[post.category] || CATEGORIES.general;
+            var cm = COLOR_MAP[cat.color] || COLOR_MAP.gray;
+            var timeAgo = _timeAgo(post.timestamp);
+            var reactions = post.reactions || {};
+            var totalReactions = 0;
+            Object.values(reactions).forEach(function() { totalReactions++; });
+            var comments = post.comments ? Object.keys(post.comments).length : 0;
+            return '<div class="bg-gray-900/40 rounded-xl border border-gray-700/40 p-4 community-animate-slide-up hover:border-indigo-500/20 transition-all">' +
+                '<div class="flex items-center justify-between mb-3">' +
+                    '<span class="text-xs px-2 py-0.5 rounded-full font-semibold ' + cm.bg + ' ' + cm.text + ' border ' + cm.border + '">' + cat.emoji + ' ' + cat.label + '</span>' +
+                    '<span class="text-xs text-gray-500">' + timeAgo + '</span>' +
+                '</div>' +
+                '<p class="text-gray-200 text-sm leading-relaxed whitespace-pre-line mb-3">' + _escHtml(post.content) + '</p>' +
+                (post.imageBase64 ? '<div class="mb-3 rounded-lg overflow-hidden border border-gray-700/50"><img src="' + post.imageBase64 + '" class="w-full max-h-48 object-cover"></div>' : '') +
+                '<div class="flex items-center gap-4 text-xs text-gray-500">' +
+                    (totalReactions > 0 ? '<span class="flex items-center gap-1">\u{1F44D} ' + totalReactions + ' reactions</span>' : '') +
+                    (comments > 0 ? '<span class="flex items-center gap-1">\u{1F4AC} ' + comments + ' comments</span>' : '') +
+                '</div>' +
+            '</div>';
+        }).join('');
+        return '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6 sm:p-8 shadow-lg">' +
+            '<h2 class="text-xl font-bold text-white mb-6 flex items-center"><i data-lucide="message-circle" class="w-5 h-5 mr-2 text-indigo-400"></i>Community Posts <span class="ml-2 text-sm font-normal text-gray-400">(' + posts.length + ')</span></h2>' +
+            '<div class="space-y-4">' + postsHtml + '</div>' +
+        '</div>';
+    };
+
     // Category config
     var CATEGORIES = {
         growth:       { emoji: '\u{1F331}', label: 'Growth',        color: 'green' },
@@ -132,12 +201,7 @@
 
         if (imgInput && imgInput.files && imgInput.files[0]) {
             var imgFile = imgInput.files[0];
-            if (imgFile.size > 800000) { alert('Image must be under 800KB. Please compress it first.'); return; }
-            imgPromise = new Promise(function(resolve) {
-                var reader = new FileReader();
-                reader.onload = function(e) { resolve(e.target.result); };
-                reader.readAsDataURL(imgFile);
-            });
+            imgPromise = window.compressImageFile(imgFile, 1200, 1200, 0.75);
         }
         if (pdfInput && pdfInput.files && pdfInput.files[0]) {
             var pdfFile = pdfInput.files[0];
@@ -310,23 +374,26 @@
                 var isMyPost = post.authorKey === myKey;
                 var delay = Math.min(idx * 0.06, 0.6);
 
-                var html = '<div class="community-post-card community-post-enter" style="animation-delay:' + delay + 's">' +
-                    '<div class="p-5 sm:p-6">' +
+                var html = '<div class="community-post-card community-post-enter community-animate-slide-up" style="animation-delay:' + delay + 's">' +
+                    '<div class="p-4 sm:p-6">' +
                         // Header
-                        '<div class="flex items-start justify-between mb-4">' +
-                            '<div class="flex items-center gap-3">' +
-                                (post.authorPic ? '<img src="' + post.authorPic + '" class="w-12 h-12 rounded-full object-cover ring-2 ring-gray-700/50 shadow-lg">' : '<div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-sm font-bold text-white ring-2 ring-indigo-500/30 shadow-lg">' + (post.authorName ? post.authorName.charAt(0).toUpperCase() : '?') + '</div>') +
-                                '<div>' +
+                        '<div class="flex items-start justify-between gap-2 mb-4">' +
+                            '<div class="flex items-center gap-2 sm:gap-3 min-w-0">' +
+                                '<div class="community-author-clickable shrink-0 cursor-pointer" onclick="viewCommunityProfile(\'' + _escHtml(post.authorKey || '') + '\',\'' + _escHtml(post.authorRole || 'Job Seeker') + '\')">' +
+                                (post.authorPic ? '<img src="' + post.authorPic + '" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ring-gray-700/50 shadow-lg" onclick="event.stopPropagation();openAvatarFullView(\'' + post.authorPic.replace(/'/g, "\\'") + '\',\'' + _escHtml(post.authorName || '') + '\')">' : '<div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold text-white ring-2 ring-indigo-500/30 shadow-lg">' + (post.authorName ? post.authorName.charAt(0).toUpperCase() : '?') + '</div>') +
+                                '</div>' +
+                                '<div class="min-w-0">' +
                                     '<div class="flex items-center gap-2 flex-wrap">' +
-                                        '<h4 class="font-bold text-white text-sm">' + _escHtml(post.authorName || 'Anonymous') + '</h4>' +
+                                        '<h4 class="font-bold text-white text-sm truncate community-author-clickable cursor-pointer hover:underline" onclick="viewCommunityProfile(\'' + _escHtml(post.authorKey || '') + '\',\'' + _escHtml(post.authorRole || 'Job Seeker') + '\')">' + _escHtml(post.authorName || 'Anonymous') + '</h4>' +
                                         _roleBadge(post.authorRole || 'Job Seeker') +
                                     '</div>' +
-                                    '<p class="text-xs text-gray-500 mt-0.5">' + _escHtml(post.authorTitle || '') + ' \u00B7 ' + timeAgo + '</p>' +
+                                    '<p class="text-xs text-gray-500 mt-0.5 truncate">' + _escHtml(post.authorTitle || '') + ' \u00B7 ' + timeAgo + '</p>' +
                                 '</div>' +
                             '</div>' +
-                            '<div class="flex items-center gap-2">' +
-                                '<span class="text-xs px-2.5 py-1 rounded-full font-semibold ' + cm.bg + ' ' + cm.text + ' border ' + cm.border + '">' + cat.emoji + ' ' + cat.label + '</span>' +
-                                (isMyPost ? '<button onclick="deleteCommunityPost(\'' + post._key + '\')" class="text-gray-600 hover:text-red-400 p-1 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>' : '') +
+                            '<div class="flex items-center gap-1 sm:gap-2 shrink-0">' +
+                                '<span class="hidden sm:inline text-xs px-2.5 py-1 rounded-full font-semibold ' + cm.bg + ' ' + cm.text + ' border ' + cm.border + '">' + cat.emoji + ' ' + cat.label + '</span>' +
+                                '<span class="sm:hidden text-xs px-1.5 py-0.5 rounded-full ' + cm.bg + ' ' + cm.text + '">' + cat.emoji + '</span>' +
+                                (isMyPost ? '<button onclick="deleteCommunityPost(\'' + post._key + '\')" class="text-gray-600 hover:text-red-400 p-1 transition-colors" title="Delete post"><i data-lucide="trash-2" class="w-4 h-4"></i></button>' : '') +
                             '</div>' +
                         '</div>' +
                         // Content
@@ -334,7 +401,7 @@
                             '<p class="text-gray-200 text-sm leading-relaxed whitespace-pre-line">' + _escHtml(post.content) + '</p>' +
                         '</div>' +
                         // Image attachment
-                        (post.imageBase64 ? '<div class="mb-4 rounded-xl overflow-hidden border border-gray-700/50"><img src="' + post.imageBase64 + '" class="w-full max-h-96 object-cover cursor-pointer hover:opacity-90 transition" onclick="window.open(this.src)"></div>' : '') +
+                        (post.imageBase64 ? '<div class="mb-4 rounded-xl overflow-hidden border border-gray-700/50"><img src="' + post.imageBase64 + '" class="w-full max-h-96 object-cover cursor-pointer hover:opacity-90 transition" onclick="openImageLightbox(this.src)"></div>' : '') +
                         // PDF attachment
                         (post.pdfBase64 ? '<div class="mb-4 flex items-center gap-3 bg-gray-900/60 p-3 rounded-xl border border-gray-700/50"><div class="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center shrink-0"><i data-lucide="file-text" class="w-5 h-5 text-red-400"></i></div><div class="flex-1 min-w-0"><p class="text-sm font-medium text-white truncate">' + _escHtml(post.pdfFileName || 'Document.pdf') + '</p><p class="text-xs text-gray-500">PDF Attachment</p></div><a href="' + post.pdfBase64 + '" download="' + _escHtml(post.pdfFileName || 'document.pdf') + '" class="text-indigo-400 hover:text-indigo-300 p-2 transition"><i data-lucide="download" class="w-5 h-5"></i></a></div>' : '') +
                         // Reaction summary
@@ -346,8 +413,8 @@
                             '<span class="ml-auto text-gray-600">' + totalReactions + ' reaction' + (totalReactions > 1 ? 's' : '') + '</span>' +
                         '</div>' : '') +
                         // Reaction buttons & comment toggle
-                        '<div class="flex items-center justify-between mb-3 pb-3 border-b border-gray-700/30">' +
-                            '<div class="flex items-center gap-1">' +
+                        '<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-3 pb-3 border-b border-gray-700/30">' +
+                            '<div class="flex items-center flex-wrap gap-1">' +
                                 '<button onclick="toggleCommunityReaction(\'' + post._key + '\', \'like\')" class="community-reaction-btn ' + (myReaction === 'like' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'hover:bg-gray-700/60 text-gray-500 border-transparent') + '">\u{1F44D} Like</button>' +
                                 '<button onclick="toggleCommunityReaction(\'' + post._key + '\', \'celebrate\')" class="community-reaction-btn ' + (myReaction === 'celebrate' ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' : 'hover:bg-gray-700/60 text-gray-500 border-transparent') + '">\u{1F389} Celebrate</button>' +
                                 '<button onclick="toggleCommunityReaction(\'' + post._key + '\', \'insightful\')" class="community-reaction-btn ' + (myReaction === 'insightful' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'hover:bg-gray-700/60 text-gray-500 border-transparent') + '">\u{1F9E0} Insightful</button>' +
@@ -389,14 +456,14 @@
         });
 
         // Build compose card
-        var composeHtml = '<div class="community-compose-card community-post-enter">' +
-            '<div class="p-5 sm:p-6">' +
-                '<div class="flex items-start gap-3 sm:gap-4">' +
-                    '<div class="shrink-0">' +
+        var composeHtml = '<div class="community-compose-card community-post-enter community-animate-slide-up" style="animation-delay:0.1s">' +
+            '<div class="p-4 sm:p-6">' +
+                '<div class="flex items-start gap-2 sm:gap-4">' +
+                    '<div class="shrink-0 hidden sm:block">' +
                         (user.pic ? '<img src="' + user.pic + '" class="w-11 h-11 rounded-full object-cover ring-2 ring-gray-700/50 shadow-lg">' : '<div class="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-lg font-bold text-white ring-2 ring-indigo-500/30 shadow-lg">' + (user.name ? user.name.charAt(0).toUpperCase() : '?') + '</div>') +
                     '</div>' +
                     '<form onsubmit="createCommunityPost(event)" class="flex-1 space-y-3">' +
-                        '<textarea id="community-post-content" rows="3" required placeholder="Share something with the Foundera community \u2014 your growth, a question, an achievement, anything..." class="w-full px-4 py-3 bg-gray-900/60 border border-gray-700/50 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500/50 outline-none text-white text-sm resize-none placeholder-gray-600 transition"></textarea>' +
+                        '<textarea id="community-post-content" rows="3" required placeholder="Share something with the Foundera community..." class="w-full px-3 sm:px-4 py-3 bg-gray-900/60 border border-gray-700/50 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500/50 outline-none text-white text-sm resize-none placeholder-gray-600 transition"></textarea>' +
                         // Image preview
                         '<div id="community-img-preview" class="hidden relative">' +
                             '<img id="community-img-preview-img" class="max-h-48 rounded-xl border border-gray-700/50 object-cover">' +
@@ -408,9 +475,9 @@
                             '<span id="community-pdf-name" class="text-xs text-gray-300 truncate flex-1"></span>' +
                             '<button type="button" onclick="removeCommunityPdfPreview()" class="text-gray-500 hover:text-red-400 p-1 transition"><i data-lucide="x" class="w-4 h-4"></i></button>' +
                         '</div>' +
-                        '<div class="flex items-center justify-between flex-wrap gap-3">' +
-                            '<div class="flex items-center gap-2">' +
-                                '<select id="community-post-category" class="px-3 py-2 bg-gray-900/60 border border-gray-700/50 rounded-lg text-xs text-white outline-none focus:ring-1 focus:ring-indigo-500 transition">' + catOptions + '</select>' +
+                        '<div class="flex items-center justify-between flex-wrap gap-2 sm:gap-3">' +
+                            '<div class="flex items-center gap-1 sm:gap-2">' +
+                                '<select id="community-post-category" class="px-2 sm:px-3 py-2 bg-gray-900/60 border border-gray-700/50 rounded-lg text-xs text-white outline-none focus:ring-1 focus:ring-indigo-500 transition max-w-[120px] sm:max-w-none">' + catOptions + '</select>' +
                                 '<label class="cursor-pointer p-2 hover:bg-gray-700/60 rounded-lg transition text-gray-500 hover:text-indigo-400" title="Attach Image">' +
                                     '<i data-lucide="image" class="w-4.5 h-4.5"></i>' +
                                     '<input type="file" id="community-img-input" accept="image/*" onchange="previewCommunityImage(this)" class="hidden">' +
@@ -428,19 +495,22 @@
         '</div>';
 
         // Community header with animation
-        var headerHtml = '<div class="community-header-banner community-post-enter">' +
-            '<div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-900/40 via-purple-900/30 to-pink-900/20 border border-indigo-500/20 p-6 sm:p-8 mb-2">' +
+        var headerHtml = '<div class="community-header-banner community-post-enter community-animate-fade-scale">' +
+            '<div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-900/40 via-purple-900/30 to-pink-900/20 border border-indigo-500/20 p-4 sm:p-8 mb-2">' +
                 '<div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.15),transparent_50%)]"></div>' +
                 '<div class="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>' +
+                '<div class="community-particle community-particle-1"></div>' +
+                '<div class="community-particle community-particle-2"></div>' +
+                '<div class="community-particle community-particle-3"></div>' +
                 '<div class="relative">' +
                     '<div class="flex items-center gap-3 mb-3">' +
                         '<div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/25"><i data-lucide="users" class="w-5 h-5 text-white"></i></div>' +
                         '<div>' +
-                            '<h2 class="text-xl sm:text-2xl font-bold text-white">Community Feed</h2>' +
+                            '<h2 class="text-lg sm:text-2xl font-bold text-white">Community Feed</h2>' +
                             '<p class="text-xs text-gray-400">Founders \u00B7 Investors \u00B7 Job Seekers \u2014 all in one place</p>' +
                         '</div>' +
                     '</div>' +
-                    '<p class="text-sm text-gray-300 max-w-2xl leading-relaxed">Share your growth, learnings, achievements, and connect with the entire Foundera ecosystem. Every voice matters here.</p>' +
+                    '<p class="text-xs sm:text-sm text-gray-300 max-w-2xl leading-relaxed">Share your growth, learnings, achievements, and connect with the entire Foundera ecosystem.</p>' +
                     '<div class="flex items-center gap-4 mt-4 text-xs text-gray-500">' +
                         '<span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-3.5 h-3.5"></i> ' + window._communityPosts.length + ' posts</span>' +
                         '<span class="flex items-center gap-1"><i data-lucide="globe" class="w-3.5 h-3.5"></i> Cross-dashboard</span>' +
@@ -455,6 +525,364 @@
             '<div class="mt-1 mb-2">' + filterHtml + '</div>' +
             postsHtml +
         '</div>';
+    };
+
+    // ============================================================
+    // NOTIFICATION SYSTEM
+    // ============================================================
+    window._notifications = [];
+    window._notifLastSeen = parseInt(localStorage.getItem('foundera_notif_seen') || '0', 10);
+    window._notifPanelOpen = false;
+    window._notifListener = null;
+
+    // Generate notifications from community posts where current user is the author and someone reacted/commented
+    window.buildNotifications = function() {
+        var user = _getUser();
+        if (!user.key) return [];
+        var notifs = [];
+        window._communityPosts.forEach(function(post) {
+            if (post.authorKey !== user.key) return;
+            // Reactions
+            var reactions = post.reactions || {};
+            Object.keys(reactions).forEach(function(reactorKey) {
+                if (reactorKey === user.key) return;
+                var reactionType = reactions[reactorKey];
+                var emoji = reactionType === 'like' ? '\u{1F44D}' : reactionType === 'celebrate' ? '\u{1F389}' : reactionType === 'insightful' ? '\u{1F9E0}' : '\u{2764}\u{FE0F}';
+                notifs.push({
+                    type: 'reaction',
+                    emoji: emoji,
+                    reactorKey: reactorKey,
+                    reactionType: reactionType,
+                    postKey: post._key,
+                    postContent: (post.content || '').substring(0, 50),
+                    timestamp: post.timestamp || 0,
+                    // We'll find names from known data
+                    actorName: '',
+                    actorPic: ''
+                });
+            });
+            // Comments
+            var comments = post.comments || {};
+            Object.keys(comments).forEach(function(cKey) {
+                var c = comments[cKey];
+                if (c.authorKey === user.key) return;
+                notifs.push({
+                    type: 'comment',
+                    emoji: '\u{1F4AC}',
+                    commenterKey: c.authorKey || '',
+                    commentText: (c.text || '').substring(0, 60),
+                    postKey: post._key,
+                    postContent: (post.content || '').substring(0, 50),
+                    timestamp: c.timestamp || post.timestamp || 0,
+                    actorName: c.authorName || 'Someone',
+                    actorPic: c.authorPic || ''
+                });
+            });
+        });
+        // Also scan for reactions on posts — find actor names from all posts' authors
+        var knownUsers = {};
+        window._communityPosts.forEach(function(p) {
+            if (p.authorKey && p.authorName) {
+                knownUsers[p.authorKey] = { name: p.authorName, pic: p.authorPic || '' };
+            }
+            var coms = p.comments || {};
+            Object.keys(coms).forEach(function(ck) {
+                var c = coms[ck];
+                if (c.authorKey && c.authorName) {
+                    knownUsers[c.authorKey] = { name: c.authorName, pic: c.authorPic || '' };
+                }
+            });
+        });
+        // Fill in actor names for reactions
+        notifs.forEach(function(n) {
+            if (n.type === 'reaction' && n.reactorKey && knownUsers[n.reactorKey]) {
+                n.actorName = knownUsers[n.reactorKey].name;
+                n.actorPic = knownUsers[n.reactorKey].pic;
+            }
+            if (!n.actorName) n.actorName = 'Someone';
+        });
+        notifs.sort(function(a, b) { return b.timestamp - a.timestamp; });
+        window._notifications = notifs;
+        return notifs;
+    };
+
+    window.getUnreadNotifCount = function() {
+        var lastSeen = window._notifLastSeen || 0;
+        var count = 0;
+        window._notifications.forEach(function(n) {
+            if (n.timestamp > lastSeen) count++;
+        });
+        return count;
+    };
+
+    window.markNotifsRead = function() {
+        window._notifLastSeen = Date.now();
+        localStorage.setItem('foundera_notif_seen', String(window._notifLastSeen));
+        updateNotifBadge();
+    };
+
+    function updateNotifBadge() {
+        var badge = document.getElementById('notif-count-badge');
+        var count = window.getUnreadNotifCount();
+        if (badge) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = count > 0 ? 'flex' : 'none';
+        }
+    }
+
+    window.toggleNotifPanel = function() {
+        var panel = document.getElementById('notif-panel');
+        if (panel) {
+            panel.remove();
+            window._notifPanelOpen = false;
+            return;
+        }
+        window._notifPanelOpen = true;
+        window.markNotifsRead();
+        var notifs = window._notifications.slice(0, 30);
+        var itemsHtml = '';
+        if (notifs.length === 0) {
+            itemsHtml = '<div class="p-8 text-center"><div class="w-14 h-14 mx-auto mb-3 bg-gray-700/30 rounded-full flex items-center justify-center"><i data-lucide="bell-off" class="w-7 h-7 text-gray-600"></i></div><p class="text-gray-500 text-sm">No notifications yet</p><p class="text-gray-600 text-xs mt-1">Reactions and comments on your posts will show up here</p></div>';
+        } else {
+            itemsHtml = notifs.map(function(n) {
+                var isUnread = n.timestamp > (window._notifLastSeen - 5000);
+                var ago = _timeAgo(n.timestamp);
+                var avatar = n.actorPic
+                    ? '<img src="' + n.actorPic + '" class="w-9 h-9 rounded-full object-cover shrink-0">'
+                    : '<div class="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0">' + (n.actorName ? n.actorName.charAt(0).toUpperCase() : '?') + '</div>';
+                if (n.type === 'reaction') {
+                    return '<div class="notification-item' + (isUnread ? ' unread' : '') + '">' +
+                        avatar +
+                        '<div class="flex-1 min-w-0">' +
+                            '<p class="text-sm text-gray-200"><span class="font-semibold text-white">' + _escHtml(n.actorName) + '</span> reacted ' + n.emoji + ' to your post</p>' +
+                            '<p class="text-xs text-gray-500 mt-0.5 truncate">"' + _escHtml(n.postContent) + '..."</p>' +
+                            '<p class="text-[10px] text-gray-600 mt-1">' + ago + '</p>' +
+                        '</div></div>';
+                } else {
+                    return '<div class="notification-item' + (isUnread ? ' unread' : '') + '">' +
+                        avatar +
+                        '<div class="flex-1 min-w-0">' +
+                            '<p class="text-sm text-gray-200"><span class="font-semibold text-white">' + _escHtml(n.actorName) + '</span> commented on your post</p>' +
+                            '<p class="text-xs text-gray-400 mt-0.5 truncate">"' + _escHtml(n.commentText) + '"</p>' +
+                            '<p class="text-[10px] text-gray-600 mt-1">' + ago + '</p>' +
+                        '</div></div>';
+                }
+            }).join('');
+        }
+        var panelHtml = '<div id="notif-panel" class="notification-panel">' +
+            '<div class="px-4 py-3 border-b border-gray-700/50 flex items-center justify-between sticky top-0 bg-gray-800/95 backdrop-blur-sm rounded-t-xl z-10">' +
+                '<h3 class="font-bold text-white text-sm">Notifications</h3>' +
+                '<button onclick="toggleNotifPanel()" class="text-gray-500 hover:text-white p-1 transition"><i data-lucide="x" class="w-4 h-4"></i></button>' +
+            '</div>' +
+            itemsHtml +
+        '</div>';
+        var container = document.getElementById('notif-bell-container');
+        if (container) {
+            container.insertAdjacentHTML('beforeend', panelHtml);
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    };
+
+    // Close notif panel on outside click
+    document.addEventListener('click', function(e) {
+        if (window._notifPanelOpen && !e.target.closest('#notif-bell-container')) {
+            var panel = document.getElementById('notif-panel');
+            if (panel) panel.remove();
+            window._notifPanelOpen = false;
+        }
+    });
+
+    // Auto-update badge when community posts change
+    var origFetch = window.fetchCommunityPosts;
+    window.fetchCommunityPosts = function() {
+        origFetch();
+        // Attach a secondary listener for notifications
+        if (typeof firebase !== 'undefined' && firebase.database) {
+            var ref = firebase.database().ref('community_posts');
+            if (window._notifListener) ref.off('value', window._notifListener);
+            window._notifListener = ref.on('value', function() {
+                setTimeout(function() {
+                    window.buildNotifications();
+                    updateNotifBadge();
+                }, 500);
+            });
+        }
+    };
+
+    // ============================================================
+    // VIEW PROFILE FROM COMMUNITY POSTS
+    // ============================================================
+    window.viewCommunityProfile = function(authorKey, authorRole) {
+        if (!authorKey) return;
+        // Determine which Firebase path to check based on role
+        var paths = [];
+        if (authorRole === 'Founder') {
+            paths = ['users/founders/' + authorKey];
+        } else if (authorRole === 'Investor') {
+            paths = ['users/investors/' + authorKey];
+        } else {
+            paths = ['users/jobseekers/' + authorKey];
+        }
+        // Also check all paths as fallback
+        var allPaths = ['users/founders/' + authorKey, 'users/jobseekers/' + authorKey, 'users/investors/' + authorKey];
+
+        var db = firebase.database();
+        // Try primary path first
+        db.ref(paths[0]).once('value').then(function(snap) {
+            var data = snap.val();
+            if (data) {
+                showProfileModal(data, authorKey, authorRole);
+            } else {
+                // Fallback: try all paths
+                Promise.all(allPaths.map(function(p) { return db.ref(p).once('value'); })).then(function(snaps) {
+                    for (var i = 0; i < snaps.length; i++) {
+                        var d = snaps[i].val();
+                        if (d) {
+                            var role = i === 0 ? 'Founder' : i === 1 ? 'Job Seeker' : 'Investor';
+                            showProfileModal(d, authorKey, role);
+                            return;
+                        }
+                    }
+                    alert('Profile not found.');
+                });
+            }
+        }).catch(function() { alert('Could not load profile.'); });
+    };
+
+    function showProfileModal(data, authorKey, role) {
+        var existing = document.getElementById('community-profile-modal');
+        if (existing) existing.remove();
+
+        var name = data.name || 'Unknown';
+        var pic = data.profilePic || data.picture || '';
+        var coverPic = data.coverPic || '';
+        var title = data.title || role;
+        var bio = data.bio || '';
+        var email = data.email || '';
+        var linkedin = data.linkedin || '';
+        var github = data.github || '';
+        var location = data.location || '';
+        var skills = data.skills || '';
+        var availability = data.availability || '';
+        var experiences = Array.isArray(data.experiences) ? data.experiences : [];
+        var education = Array.isArray(data.education) ? data.education : [];
+        var certificates = Array.isArray(data.certificates) ? data.certificates : [];
+
+        var roleBadge = role === 'Founder'
+            ? '<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">Founder</span>'
+            : role === 'Investor'
+            ? '<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">Investor</span>'
+            : '<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">Job Seeker</span>';
+
+        var coverStyle = coverPic
+            ? 'background-image: url(' + coverPic + '); background-size: cover; background-position: center;'
+            : 'background: linear-gradient(135deg, #1e1b4b, #312e81, #1e1b4b);';
+
+        var profilePicHTML = pic
+            ? '<img src="' + pic + '" alt="' + _escHtml(name) + '" class="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-gray-900 shadow-xl cursor-pointer" onclick="openAvatarFullView(\'' + pic.replace(/'/g, "\\'") + '\',\'' + _escHtml(name) + '\')">'
+            : '<div class="w-24 h-24 sm:w-28 sm:h-28 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full border-4 border-gray-900 flex items-center justify-center text-3xl sm:text-4xl font-bold text-white shadow-xl">' + name.charAt(0).toUpperCase() + '</div>';
+
+        var skillsArr = typeof skills === 'string' ? skills.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : (Array.isArray(skills) ? skills : []);
+        var skillsHTML = skillsArr.length > 0
+            ? skillsArr.map(function(s) { return '<span class="bg-gray-900 border border-gray-600 px-3 py-1 rounded-lg text-sm text-gray-200">' + _escHtml(s) + '</span>'; }).join('')
+            : '<p class="text-gray-500 text-sm italic">No skills listed.</p>';
+
+        var expHTML = experiences.length > 0
+            ? experiences.map(function(exp) {
+                return '<div class="flex items-start gap-3 border-b border-gray-700/50 pb-3 last:border-0 last:pb-0"><div class="w-9 h-9 rounded-lg bg-gray-900 border border-gray-700 flex items-center justify-center shrink-0"><i data-lucide="briefcase" class="w-4 h-4 text-gray-400"></i></div><div><h5 class="font-bold text-white text-sm">' + _escHtml(exp.title || '') + '</h5><p class="text-xs text-gray-400">' + _escHtml(exp.company || '') + '</p><p class="text-xs text-gray-600">' + _escHtml(exp.duration || '') + '</p></div></div>';
+            }).join('')
+            : '';
+
+        var eduHTML = education.length > 0
+            ? education.map(function(edu) {
+                return '<div class="flex items-start gap-3 border-b border-gray-700/50 pb-3 last:border-0 last:pb-0"><div class="w-9 h-9 rounded-lg bg-gray-900 border border-gray-700 flex items-center justify-center shrink-0"><i data-lucide="graduation-cap" class="w-4 h-4 text-gray-400"></i></div><div><h5 class="font-bold text-white text-sm">' + _escHtml(edu.school || '') + '</h5><p class="text-xs text-gray-400">' + _escHtml(edu.degree || '') + '</p><p class="text-xs text-gray-600">' + _escHtml(edu.duration || '') + '</p></div></div>';
+            }).join('')
+            : '';
+
+        var certHTML = certificates.length > 0
+            ? certificates.map(function(c) {
+                return '<div class="flex items-center justify-between border-b border-gray-700/50 pb-2 last:border-0 last:pb-0"><div><span class="font-bold text-white text-sm">' + _escHtml(c.name || '') + '</span><span class="text-xs text-gray-500 ml-2">' + _escHtml(c.issuer || '') + '</span></div></div>';
+            }).join('')
+            : '';
+
+        var contactHTML = '<div class="flex flex-wrap gap-2">' +
+            (email ? '<a href="mailto:' + _escHtml(email) + '" class="bg-gray-900 border border-gray-700 hover:border-indigo-500/50 px-3 py-2 rounded-lg flex items-center gap-2 text-xs text-gray-300 transition"><i data-lucide="mail" class="w-3.5 h-3.5 text-red-400"></i>' + _escHtml(email) + '</a>' : '') +
+            (linkedin ? '<a href="' + _escHtml(linkedin) + '" target="_blank" class="bg-gray-900 border border-gray-700 hover:border-blue-500/50 px-3 py-2 rounded-lg flex items-center gap-2 text-xs text-gray-300 transition"><i data-lucide="linkedin" class="w-3.5 h-3.5 text-blue-400"></i>LinkedIn</a>' : '') +
+            (github ? '<a href="' + _escHtml(github) + '" target="_blank" class="bg-gray-900 border border-gray-700 hover:border-gray-500/50 px-3 py-2 rounded-lg flex items-center gap-2 text-xs text-gray-300 transition"><i data-lucide="github" class="w-3.5 h-3.5 text-gray-400"></i>GitHub</a>' : '') +
+            '</div>';
+
+        // Community posts for this user
+        var communityPostsHTML = window.renderUserCommunityPosts ? window.renderUserCommunityPosts(authorKey, name) : '';
+
+        var modal = document.createElement('div');
+        modal.id = 'community-profile-modal';
+        modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-start justify-center p-2 sm:p-4 overflow-y-auto';
+        modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+
+        modal.innerHTML = '<div class="bg-gray-900 rounded-2xl sm:rounded-3xl border border-gray-700/50 shadow-2xl w-full max-w-3xl my-4 sm:my-8 overflow-hidden animate-fade-in">' +
+            '<button onclick="document.getElementById(\'community-profile-modal\').remove()" class="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 bg-gray-800/90 hover:bg-gray-700 p-2 rounded-xl text-gray-400 hover:text-white transition border border-gray-700"><i data-lucide="x" class="w-5 h-5"></i></button>' +
+            '<div class="h-32 sm:h-44 relative" style="' + coverStyle + '"><div class="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent"></div></div>' +
+            '<div class="px-4 sm:px-8 pb-4 sm:pb-6 relative -mt-12 sm:-mt-16">' +
+                '<div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5">' +
+                    '<div class="shrink-0">' + profilePicHTML + '</div>' +
+                    '<div class="flex-1 text-center sm:text-left pt-1 sm:pt-2">' +
+                        '<h2 class="text-xl sm:text-2xl font-bold text-white">' + _escHtml(name) + '</h2>' +
+                        '<div class="flex items-center justify-center sm:justify-start gap-2 mt-1">' +
+                            '<p class="text-indigo-400 font-medium text-sm">' + _escHtml(title) + '</p>' +
+                            roleBadge +
+                        '</div>' +
+                        (location ? '<p class="text-gray-500 text-xs flex items-center justify-center sm:justify-start mt-1"><i data-lucide="map-pin" class="w-3 h-3 mr-1"></i>' + _escHtml(location) + '</p>' : '') +
+                        (availability ? '<span class="inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-400 border border-green-500/30">' + _escHtml(availability) + '</span>' : '') +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="px-4 sm:px-8 pb-6 sm:pb-8 space-y-4 sm:space-y-6">' +
+                (bio ? '<div class="bg-gray-800/40 rounded-xl sm:rounded-2xl border border-gray-700/50 p-4 sm:p-6"><h4 class="font-bold text-sm sm:text-base text-white mb-2 flex items-center"><i data-lucide="user" class="w-4 h-4 mr-2 text-indigo-400"></i>About</h4><p class="text-gray-300 text-xs sm:text-sm leading-relaxed whitespace-pre-line">' + _escHtml(bio) + '</p></div>' : '') +
+                (skillsArr.length > 0 ? '<div class="bg-gray-800/40 rounded-xl sm:rounded-2xl border border-gray-700/50 p-4 sm:p-6"><h4 class="font-bold text-sm sm:text-base text-white mb-3 flex items-center"><i data-lucide="code" class="w-4 h-4 mr-2 text-yellow-400"></i>Skills</h4><div class="flex flex-wrap gap-2">' + skillsHTML + '</div></div>' : '') +
+                (expHTML ? '<div class="bg-gray-800/40 rounded-xl sm:rounded-2xl border border-gray-700/50 p-4 sm:p-6"><h4 class="font-bold text-sm sm:text-base text-white mb-3 flex items-center"><i data-lucide="briefcase" class="w-4 h-4 mr-2 text-blue-400"></i>Experience</h4><div class="space-y-3">' + expHTML + '</div></div>' : '') +
+                (eduHTML ? '<div class="bg-gray-800/40 rounded-xl sm:rounded-2xl border border-gray-700/50 p-4 sm:p-6"><h4 class="font-bold text-sm sm:text-base text-white mb-3 flex items-center"><i data-lucide="graduation-cap" class="w-4 h-4 mr-2 text-purple-400"></i>Education</h4><div class="space-y-3">' + eduHTML + '</div></div>' : '') +
+                (certHTML ? '<div class="bg-gray-800/40 rounded-xl sm:rounded-2xl border border-gray-700/50 p-4 sm:p-6"><h4 class="font-bold text-sm sm:text-base text-white mb-3 flex items-center"><i data-lucide="award" class="w-4 h-4 mr-2 text-orange-400"></i>Certifications</h4><div class="space-y-3">' + certHTML + '</div></div>' : '') +
+                '<div class="bg-gray-800/40 rounded-xl sm:rounded-2xl border border-gray-700/50 p-4 sm:p-6"><h4 class="font-bold text-sm sm:text-base text-white mb-3 flex items-center"><i data-lucide="phone" class="w-4 h-4 mr-2 text-blue-400"></i>Contact</h4>' + contactHTML + '</div>' +
+                communityPostsHTML +
+            '</div></div>';
+
+        document.body.appendChild(modal);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    // ============================================================
+    // IMAGE LIGHTBOX — for post images and avatars
+    // ============================================================
+    window.openImageLightbox = function(src) {
+        if (!src) return;
+        var existing = document.getElementById('foundera-lightbox');
+        if (existing) existing.remove();
+        var lightbox = document.createElement('div');
+        lightbox.id = 'foundera-lightbox';
+        lightbox.className = 'fixed inset-0 bg-black/90 backdrop-blur-sm z-[80] flex items-center justify-center p-4 cursor-zoom-out';
+        lightbox.onclick = function(e) { if (e.target === lightbox || e.target.tagName === 'IMG') lightbox.remove(); };
+        lightbox.innerHTML =
+            '<button onclick="document.getElementById(\'foundera-lightbox\').remove()" class="absolute top-4 right-4 z-10 bg-gray-800/80 hover:bg-gray-700 text-white p-2.5 rounded-full transition border border-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>' +
+            '<img src="' + src + '" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" style="animation: lightboxZoomIn 0.25s ease-out">';
+        document.body.appendChild(lightbox);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    };
+
+    // Avatar click — show full profile photo
+    window.openAvatarFullView = function(src, name) {
+        if (!src) return;
+        var existing = document.getElementById('foundera-lightbox');
+        if (existing) existing.remove();
+        var lightbox = document.createElement('div');
+        lightbox.id = 'foundera-lightbox';
+        lightbox.className = 'fixed inset-0 bg-black/90 backdrop-blur-sm z-[80] flex flex-col items-center justify-center p-4 cursor-zoom-out';
+        lightbox.onclick = function(e) { if (e.target === lightbox) lightbox.remove(); };
+        lightbox.innerHTML =
+            '<button onclick="document.getElementById(\'foundera-lightbox\').remove()" class="absolute top-4 right-4 z-10 bg-gray-800/80 hover:bg-gray-700 text-white p-2.5 rounded-full transition border border-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>' +
+            '<img src="' + src + '" class="w-64 h-64 sm:w-80 sm:h-80 object-cover rounded-full shadow-2xl border-4 border-gray-700" style="animation: lightboxZoomIn 0.25s ease-out">' +
+            (name ? '<p class="text-white font-bold text-lg mt-4">' + _escHtml(name) + '</p>' : '');
+        document.body.appendChild(lightbox);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     };
 
 })();

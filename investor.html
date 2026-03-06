@@ -61,6 +61,9 @@
                 </button>
 
                 <nav class="space-y-2">
+                    <a href="#" onclick="setTab('community')" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300" id="nav-community">
+                        <i data-lucide="message-circle" class="w-5 h-5 text-indigo-400"></i><span>Community</span>
+                    </a>
                     <a href="#" onclick="setTab('overview')" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300" id="nav-overview">
                         <i data-lucide="layout-dashboard" class="w-5 h-5"></i><span>Overview</span>
                     </a>
@@ -70,12 +73,8 @@
                     <a href="#" onclick="setTab('explore')" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300" id="nav-explore">
                         <i data-lucide="search" class="w-5 h-5"></i><span>AI Matching</span>
                     </a>
-                    <!-- Founder Profile Browse Section -->
                     <a href="#" onclick="setTab('founders')" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300" id="nav-founders">
                         <i data-lucide="users" class="w-5 h-5 text-blue-400"></i><span>Browse Founders</span>
-                    </a>
-                    <a href="#" onclick="setTab('community')" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300" id="nav-community">
-                        <i data-lucide="message-circle" class="w-5 h-5 text-indigo-400"></i><span>Community</span>
                     </a>
                     <a href="#" onclick="setTab('portfolio')" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300" id="nav-portfolio">
                         <i data-lucide="briefcase" class="w-5 h-5"></i><span>My Portfolio</span>
@@ -106,6 +105,13 @@
                     <button onclick="setTab('explore')" class="btn-highlight-purple text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hidden md:flex">
                         <i data-lucide="compass" class="w-4 h-4 fill-current"></i> Explore Startups
                     </button>
+                    <!-- Notification Bell -->
+                    <div id="notif-bell-container" class="relative">
+                        <button onclick="toggleNotifPanel()" class="p-3 bg-gray-800/50 rounded-xl hover:bg-gray-700/50 transition-all relative border border-gray-700/50">
+                            <i data-lucide="bell" class="w-5 h-5"></i>
+                            <span id="notif-count-badge" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full text-[10px] font-bold text-white items-center justify-center px-1" style="display:none">0</span>
+                        </button>
+                    </div>
                     <div onclick="setTab('profile')" class="cursor-pointer w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-lg font-bold shadow-lg">
                         <span id="user-initial">I</span>
                     </div>

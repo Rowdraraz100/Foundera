@@ -34,6 +34,7 @@
                         var f = data[key];
                         startupList.push({
                             id: idx,
+                            firebaseKey: key,
                             name: f.startupName || '',
                             founder: f.name || 'Unknown',
                             picture: f.picture || '',
@@ -349,6 +350,9 @@
                             </div>
                         </form>
                     </div>
+
+                    <!-- Community Posts -->
+                    ${window.renderUserCommunityPosts ? window.renderUserCommunityPosts(profileData.email ? profileData.email.replace(/[.#$\[\]]/g, '_') : '', profileData.name) : ''}
                 </div>
             `;
         }
@@ -436,7 +440,8 @@
                                         ${startup.skillsNeeded && startup.skillsNeeded.length > 0 ? '<div class="bg-gray-900/50 rounded-xl p-4 border border-gray-700"><p class="text-xs text-gray-400 mb-2 font-bold uppercase tracking-wider">Skills Needed:</p><div class="flex flex-wrap gap-2">' + startup.skillsNeeded.map(function(s){ return '<span class="bg-indigo-500/15 text-indigo-300 text-xs px-2.5 py-1 rounded-lg border border-indigo-500/30">' + s + '</span>'; }).join('') + '</div></div>' : ''}
 
                                         <div class="flex gap-3">
-                                            ${startup.email ? '<button onclick="requestPitch(' + startup.id + ')" class="flex-1 invest-btn text-white py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20">Contact Founder</button>' : ''}
+                                            <button onclick="viewCommunityProfile('${startup.firebaseKey}','Founder')" class="flex-1 invest-btn text-white py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20">View Profile</button>
+                                            ${startup.email ? '<button onclick="requestPitch(' + startup.id + ')" class="flex-1 border border-indigo-500/40 text-indigo-300 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-500/10 transition">Contact Founder</button>' : ''}
                                             <button onclick="toggleWatchlist(${startup.id})" class="p-2.5 border border-gray-600 rounded-xl hover:bg-gray-700 transition text-gray-400 flex items-center justify-center" title="Save to Watchlist">
                                                 <i data-lucide="heart" class="w-5 h-5 ${isSaved ? 'fill-red-400 text-red-400' : ''}"></i>
                                             </button>

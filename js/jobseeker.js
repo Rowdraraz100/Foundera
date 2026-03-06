@@ -191,6 +191,7 @@
                         var f = data[key];
                         foundersList.push({
                             id: idx,
+                            firebaseKey: key,
                             name: f.name || 'Unknown',
                             startup: f.startupName || '',
                             industry: f.industry || 'General',
@@ -337,20 +338,17 @@
             }
         }
 
-        // --- PROFILE PIC UPLOAD ---
+        // --- PROFILE PIC UPLOAD (auto-compress, no size limit) ---
         function handleProfilePicUpload(input) {
             if (!input.files || !input.files[0]) return;
             var file = input.files[0];
             if (!file.type.match('image.*')) { alert('Please select an image file (JPG, PNG, etc.)'); return; }
-            if (file.size > 512000) { alert('Profile photo must be under 500KB. Please compress and try again.'); return; }
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                profileData.profilePic = e.target.result;
-                localStorage.setItem('seekerProfilePic', e.target.result);
+            window.compressImageFile(file, 800, 800, 0.8).then(function(base64) {
+                profileData.profilePic = base64;
+                localStorage.setItem('seekerProfilePic', base64);
                 updateSeekerHeaderAvatar();
                 renderContent();
-            };
-            reader.readAsDataURL(file);
+            });
         }
 
         function removeProfilePic() {
@@ -360,19 +358,16 @@
             renderContent();
         }
 
-        // --- COVER PIC UPLOAD ---
+        // --- COVER PIC UPLOAD (auto-compress, no size limit) ---
         function handleCoverPicUpload(input) {
             if (!input.files || !input.files[0]) return;
             var file = input.files[0];
             if (!file.type.match('image.*')) { alert('Please select an image file (JPG, PNG, etc.)'); return; }
-            if (file.size > 1048576) { alert('Cover photo must be under 1MB. Please compress and try again.'); return; }
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                profileData.coverPic = e.target.result;
-                localStorage.setItem('seekerCoverPic', e.target.result);
+            window.compressImageFile(file, 1920, 1080, 0.75).then(function(base64) {
+                profileData.coverPic = base64;
+                localStorage.setItem('seekerCoverPic', base64);
                 renderContent();
-            };
-            reader.readAsDataURL(file);
+            });
         }
 
         function removeCoverPic() {
@@ -657,6 +652,7 @@
                         (seeker.education && seeker.education.length > 0 ? '<div class="bg-gray-900/50 p-5 rounded-xl border border-gray-700"><h4 class="font-bold text-white mb-3 flex items-center"><i data-lucide="graduation-cap" class="w-4 h-4 mr-2 text-purple-400"></i>Education</h4><div class="space-y-4">' + seeker.education.map(function(edu) { return '<div class="border-b border-gray-700/50 pb-3 last:border-0 last:pb-0"><h5 class="font-bold text-white">' + escapeHtml(edu.school || '') + '</h5><p class="text-sm text-gray-400">' + escapeHtml(edu.degree || '') + ' &bull; ' + escapeHtml(edu.duration || '') + '</p></div>'; }).join('') + '</div></div>' : '') +
                         (seeker.projects && seeker.projects.length > 0 ? '<div class="bg-gray-900/50 p-5 rounded-xl border border-gray-700"><h4 class="font-bold text-white mb-3 flex items-center"><i data-lucide="folder-git-2" class="w-4 h-4 mr-2 text-orange-400"></i>Projects</h4><div class="space-y-4">' + seeker.projects.map(function(p) { return '<div class="border-b border-gray-700/50 pb-3 last:border-0 last:pb-0"><h5 class="font-bold text-white">' + escapeHtml(p.name || '') + '</h5>' + (p.tech ? '<p class="text-xs text-gray-400 mt-0.5">' + escapeHtml(p.tech) + '</p>' : '') + (p.description ? '<p class="text-sm text-gray-300 mt-1">' + escapeHtml(p.description) + '</p>' : '') + (p.url ? '<a href="' + p.url + '" target="_blank" class="text-xs text-green-400 hover:underline mt-1 inline-flex items-center"><i data-lucide="external-link" class="w-3 h-3 mr-1"></i>View Project</a>' : '') + '</div>'; }).join('') + '</div></div>' : '') +
                         (seeker.certificates && seeker.certificates.length > 0 ? '<div class="bg-gray-900/50 p-5 rounded-xl border border-gray-700"><h4 class="font-bold text-white mb-3 flex items-center"><i data-lucide="award" class="w-4 h-4 mr-2 text-green-400"></i>Certifications</h4><div class="space-y-3">' + seeker.certificates.map(function(c) { return '<div class="flex items-center justify-between"><div><span class="font-bold text-white text-sm">' + escapeHtml(c.name || '') + '</span><span class="text-xs text-gray-400 ml-2">' + escapeHtml(c.issuer || '') + ' &bull; ' + escapeHtml(c.year || '') + '</span></div></div>'; }).join('') + '</div></div>' : '') +
+                        (window.renderUserCommunityPosts ? window.renderUserCommunityPosts(seeker.key, seeker.name) : '') +
                     '</div>' +
                 '</div>' +
             '</div>';
@@ -1028,6 +1024,9 @@
                         ${profileData.cvBase64 ? '<button onclick="removeCVFile()" class="mt-3 text-red-400 hover:text-red-300 text-sm font-medium flex items-center transition-colors"><i data-lucide="trash-2" class="w-4 h-4 mr-1"></i> Remove CV</button>' : ''}
                     </div>
 
+                    <!-- Community Posts -->
+                    ${window.renderUserCommunityPosts ? window.renderUserCommunityPosts(profileData.email ? profileData.email.replace(/[.#$\[\]]/g, '_') : '', profileData.name) : ''}
+
                     <!-- Save All Changes -->
                     <div class="sticky bottom-4 z-40">
                         <button onclick="saveAllChanges()" class="save-all-btn w-full btn-highlight-green text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-2xl shadow-green-500/30 flex items-center justify-center gap-3 hover:scale-[1.02] transition-transform">
@@ -1266,9 +1265,10 @@
 
                                         ${founder.skillsNeeded.length > 0 ? '<div class="bg-gray-900/50 rounded-xl p-4 border border-gray-700"><p class="text-xs text-gray-400 mb-2 font-bold uppercase tracking-wider">Skills Needed:</p><div class="flex flex-wrap gap-2">' + founder.skillsNeeded.map(function(s){ return '<span class="bg-blue-500/15 text-blue-300 text-xs px-2.5 py-1 rounded-lg border border-blue-500/30">' + s + '</span>'; }).join('') + '</div></div>' : ''}
 
-                                        <div class="flex gap-3">
-                                            ${founder.email ? '<a href="mailto:' + founder.email + '" class="flex-1 seeker-btn text-white py-2.5 rounded-xl font-bold text-sm shadow-lg text-center">Contact Founder</a>' : ''}
-                                            ${founder.linkedin ? '<a href="' + founder.linkedin + '" target="_blank" class="flex-1 border border-gray-600 hover:bg-gray-700 text-gray-300 py-2.5 rounded-xl font-bold text-sm text-center transition flex items-center justify-center"><i data-lucide="linkedin" class="w-4 h-4 mr-1"></i> LinkedIn</a>' : ''}
+                                        <div class="flex gap-3 flex-wrap">
+                                            <button onclick="viewCommunityProfile('${founder.firebaseKey}','Founder')" class="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white py-2.5 rounded-xl font-bold text-sm shadow-lg text-center transition-all flex items-center justify-center gap-1.5"><i data-lucide="eye" class="w-4 h-4"></i> View Profile</button>
+                                            ${founder.email ? '<a href="mailto:' + founder.email + '" class="flex-1 seeker-btn text-white py-2.5 rounded-xl font-bold text-sm shadow-lg text-center">Contact</a>' : ''}
+                                            ${founder.linkedin ? '<a href="' + founder.linkedin + '" target="_blank" class="border border-gray-600 hover:bg-gray-700 text-gray-300 py-2.5 px-4 rounded-xl font-bold text-sm text-center transition flex items-center justify-center"><i data-lucide="linkedin" class="w-4 h-4"></i></a>' : ''}
                                         </div>
                                     </div>
 

@@ -11,7 +11,8 @@
             bio: localStorage.getItem('founderBio') || '',
             skills: localStorage.getItem('founderSkills') || '',
             availability: localStorage.getItem('founderAvailability') || '',
-            picture: localStorage.getItem('founderPicture') || ''
+            picture: localStorage.getItem('founderPicture') || '',
+            coverPic: localStorage.getItem('founderCoverPic') || ''
         };
         
         // --- LOGOUT FUNCTION ---
@@ -29,6 +30,7 @@
             localStorage.removeItem('founderSkills');
             localStorage.removeItem('founderAvailability');
             localStorage.removeItem('founderPicture');
+            localStorage.removeItem('founderCoverPic');
             localStorage.removeItem('founderIdeas');
             localStorage.removeItem('pendingSignup');
             
@@ -46,6 +48,7 @@
             localStorage.setItem('founderSkills', profileData.skills);
             localStorage.setItem('founderAvailability', profileData.availability);
             localStorage.setItem('founderPicture', profileData.picture);
+            localStorage.setItem('founderCoverPic', profileData.coverPic);
             
             // Also save to Firebase
             saveFounderProfileToFirebase();
@@ -66,6 +69,7 @@
                 skills: profileData.skills,
                 availability: profileData.availability,
                 picture: profileData.picture || '',
+                coverPic: profileData.coverPic || '',
                 role: 'Founder',
                 profileUpdatedAt: new Date().toISOString()
             };
@@ -91,6 +95,7 @@
                     profileData.skills = data.skills || '';
                     profileData.availability = data.availability || '';
                     profileData.picture = data.picture || '';
+                    profileData.coverPic = data.coverPic || '';
                     // Sync to localStorage
                     localStorage.setItem('founderName', profileData.name);
                     localStorage.setItem('founderEmail', profileData.email);
@@ -100,6 +105,7 @@
                     localStorage.setItem('founderSkills', profileData.skills);
                     localStorage.setItem('founderAvailability', profileData.availability);
                     localStorage.setItem('founderPicture', profileData.picture);
+                    localStorage.setItem('founderCoverPic', profileData.coverPic);
                     // Update header avatar
                     updateHeaderAvatar();
                     console.log('Founder profile loaded from Firebase');
@@ -129,24 +135,16 @@
                 alert('Please select an image file (JPG, PNG, etc.)');
                 return;
             }
-            // Validate file size (max 500KB for base64 in Realtime DB)
-            if (file.size > 512000) {
-                alert('Image size must be under 500KB. Please compress your image and try again.');
-                return;
-            }
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                var base64 = e.target.result;
+            // Auto-compress images (no size limit)
+            window.compressImageFile(file, 800, 800, 0.8).then(function(base64) {
                 profileData.picture = base64;
                 localStorage.setItem('founderPicture', base64);
-                // Update profile photo preview
                 var preview = document.getElementById('profile-photo-preview');
                 if (preview) {
                     preview.innerHTML = '<img src="' + base64 + '" alt="Profile" class="w-28 h-28 rounded-full object-cover">';
                 }
                 updateHeaderAvatar();
-            };
-            reader.readAsDataURL(file);
+            });
         }
 
         // --- REMOVE PROFILE PHOTO ---
@@ -161,6 +159,38 @@
             updateHeaderAvatar();
         }
         
+        // --- COVER PHOTO UPLOAD ---
+        function handleCoverPhotoUpload(input) {
+            if (!input.files || !input.files[0]) return;
+            var file = input.files[0];
+            if (!file.type.match('image.*')) {
+                alert('Please select an image file (JPG, PNG, etc.)');
+                return;
+            }
+            window.compressImageFile(file, 1920, 1080, 0.75).then(function(base64) {
+                profileData.coverPic = base64;
+                localStorage.setItem('founderCoverPic', base64);
+                var preview = document.getElementById('cover-photo-preview');
+                if (preview) {
+                    preview.style.backgroundImage = 'url(' + base64 + ')';
+                    preview.style.backgroundSize = 'cover';
+                    preview.style.backgroundPosition = 'center';
+                }
+                saveFounderProfileToFirebase();
+            });
+        }
+
+        function removeCoverPhoto() {
+            profileData.coverPic = '';
+            localStorage.removeItem('founderCoverPic');
+            var preview = document.getElementById('cover-photo-preview');
+            if (preview) {
+                preview.style.backgroundImage = 'none';
+                preview.style.background = 'linear-gradient(135deg, #1e1b4b, #312e81, #1e1b4b)';
+            }
+            saveFounderProfileToFirebase();
+        }
+
         // --- LOAD IDEAS FROM LOCALSTORAGE ---
         function loadIdeasFromStorage() {
             const savedIdeas = localStorage.getItem('founderIdeas');
@@ -1134,8 +1164,12 @@
                 : '<div class="w-28 h-28 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-4xl font-bold text-white">' + initial + '</div>';
             
             var headerPhotoHTML = profileData.picture
-                ? '<img src="' + profileData.picture + '" alt="Profile" class="w-24 h-24 rounded-full object-cover border-4 border-gray-800">'
-                : '<div class="w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-4xl font-bold shadow-xl border-4 border-gray-800 text-white">' + initial + '</div>';
+                ? '<img src="' + profileData.picture + '" alt="Profile" class="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-gray-900 shadow-xl">'
+                : '<div class="w-24 h-24 sm:w-28 sm:h-28 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-4xl font-bold shadow-xl border-4 border-gray-900 text-white">' + initial + '</div>';
+
+            var coverStyle = profileData.coverPic
+                ? 'background-image: url(' + profileData.coverPic + '); background-size: cover; background-position: center;'
+                : 'background: linear-gradient(135deg, #1e1b4b, #312e81, #1e1b4b);';
 
             // Social links — only show if filled
             var socialBtns = '';
@@ -1146,19 +1180,31 @@
 
             return `
                 <div class="max-w-4xl space-y-6 animate-fade-in">
-                    <!-- Profile Header -->
-                    <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-8 shadow-lg">
-                        <div class="flex flex-col md:flex-row items-center gap-6">
-                            <div class="relative group">
-                                ${headerPhotoHTML}
+                    <!-- Profile Header with Cover Photo -->
+                    <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 shadow-lg overflow-hidden">
+                        <div id="cover-photo-preview" class="h-36 sm:h-48 relative" style="${coverStyle}">
+                            <div class="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent"></div>
+                            <div class="absolute top-3 right-3 flex gap-2 z-10">
+                                <label class="cursor-pointer bg-gray-900/70 hover:bg-gray-900 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs font-bold text-white transition border border-gray-600/50 flex items-center gap-1.5">
+                                    <i data-lucide="image" class="w-3.5 h-3.5"></i> ${profileData.coverPic ? 'Change Cover' : 'Add Cover'}
+                                    <input type="file" accept="image/*" onchange="handleCoverPhotoUpload(this)" class="hidden">
+                                </label>
+                                ${profileData.coverPic ? '<button onclick="removeCoverPhoto()" class="bg-gray-900/70 hover:bg-red-600/80 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs font-bold text-white transition border border-gray-600/50 flex items-center gap-1.5"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Remove</button>' : ''}
                             </div>
-                            <div class="flex-1 text-center md:text-left">
-                                <h2 class="text-3xl font-bold mb-1 text-white">${profileData.name || '<span class="text-gray-500">Your Name</span>'}</h2>
-                                <p class="text-blue-400 font-medium mb-3">Founder</p>
-                                ${profileData.bio ? '<p class="text-gray-400 text-sm max-w-md">' + profileData.bio.substring(0, 120) + (profileData.bio.length > 120 ? '...' : '') + '</p>' : '<p class="text-gray-500 text-sm italic">No bio yet — add one below</p>'}
-                            </div>
-                            <div class="flex gap-3 flex-wrap justify-center">
-                                ${socialBtns}
+                        </div>
+                        <div class="px-6 sm:px-8 pb-6 relative -mt-14 sm:-mt-16">
+                            <div class="flex flex-col md:flex-row items-center gap-5">
+                                <div class="relative group shrink-0">
+                                    ${headerPhotoHTML}
+                                </div>
+                                <div class="flex-1 text-center md:text-left pt-1">
+                                    <h2 class="text-2xl sm:text-3xl font-bold mb-1 text-white">${profileData.name || '<span class="text-gray-500">Your Name</span>'}</h2>
+                                    <p class="text-blue-400 font-medium mb-2">Founder</p>
+                                    ${profileData.bio ? '<p class="text-gray-400 text-sm max-w-md">' + profileData.bio.substring(0, 120) + (profileData.bio.length > 120 ? '...' : '') + '</p>' : '<p class="text-gray-500 text-sm italic">No bio yet — add one below</p>'}
+                                </div>
+                                <div class="flex gap-3 flex-wrap justify-center">
+                                    ${socialBtns}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1167,7 +1213,7 @@
                     <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-8 shadow-lg">
                         <div class="mb-6 border-b border-gray-700 pb-4">
                             <h3 class="font-bold text-xl text-white flex items-center"><i data-lucide="camera" class="w-5 h-5 mr-2 text-blue-400"></i> Profile Photo</h3>
-                            <p class="text-sm text-gray-400 mt-1">Upload a photo (max 500KB, JPG/PNG). This will be saved to the database.</p>
+                            <p class="text-sm text-gray-400 mt-1">Upload a photo (JPG/PNG). Images are auto-compressed.</p>
                         </div>
                         <div class="flex flex-col sm:flex-row items-center gap-6">
                             <div id="profile-photo-preview" class="relative">
@@ -1242,6 +1288,9 @@
                         </div>
                     </form>
                 </div>
+
+                <!-- Community Posts -->
+                ${window.renderUserCommunityPosts ? window.renderUserCommunityPosts(profileData.email ? profileData.email.replace(/[.#$\[\]]/g, '_') : '', profileData.name) : ''}
             `;
         }
 
@@ -1251,12 +1300,12 @@
             if (!t) return;
             var modal = document.createElement('div');
             modal.id = 'seeker-profile-modal';
-            modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-start justify-center p-4 overflow-y-auto';
+            modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-start justify-center p-2 sm:p-4 overflow-y-auto';
             modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
             
             var profilePicHTML = t.profilePic 
-                ? '<img src="' + t.profilePic + '" alt="' + t.name + '" class="w-28 h-28 rounded-full object-cover border-4 border-gray-800 shadow-xl">'
-                : '<div class="w-28 h-28 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full border-4 border-gray-800 flex items-center justify-center text-4xl font-bold text-white shadow-xl">' + t.avatar + '</div>';
+                ? '<img src="' + t.profilePic + '" alt="' + t.name + '" class="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-gray-900 shadow-xl cursor-pointer" onclick="openAvatarFullView(\'' + t.profilePic.replace(/'/g, "\\'") + '\',\'' + (t.name || '').replace(/'/g, "\\'") + '\')">'
+                : '<div class="w-24 h-24 sm:w-28 sm:h-28 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full border-4 border-gray-900 flex items-center justify-center text-3xl sm:text-4xl font-bold text-white shadow-xl">' + t.avatar + '</div>';
             
             var coverStyle = t.coverPic 
                 ? 'background-image: url(' + t.coverPic + '); background-size: cover; background-position: center;'
@@ -1301,54 +1350,55 @@
             
             var cvSection = '';
             if (t.cvBase64) {
-                cvSection = '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6">' +
-                    '<h4 class="font-bold text-lg text-white mb-4 flex items-center"><i data-lucide="file-text" class="w-5 h-5 mr-2 text-green-400"></i> Resume / CV</h4>' +
-                    '<div class="bg-gray-900/50 border border-gray-700 rounded-xl p-4 flex items-center justify-between">' +
-                    '<div class="flex items-center"><i data-lucide="file-check" class="w-8 h-8 text-green-400 mr-3"></i><div><p class="text-white font-medium">' + (t.cvFileName || 'Resume.pdf') + '</p><p class="text-xs text-gray-500">PDF Document</p></div></div>' +
-                    '<a href="' + t.cvBase64 + '" download="' + (t.cvFileName || t.name + '_CV.pdf') + '" class="bg-green-600 hover:bg-green-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center gap-2 transition-colors"><i data-lucide="download" class="w-4 h-4"></i> Download CV</a>' +
+                cvSection = '<div class="bg-gray-800/40 rounded-xl sm:rounded-2xl border border-gray-700/50 p-4 sm:p-6">' +
+                    '<h4 class="font-bold text-base sm:text-lg text-white mb-3 sm:mb-4 flex items-center"><i data-lucide="file-text" class="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-green-400"></i> Resume / CV</h4>' +
+                    '<div class="bg-gray-900/50 border border-gray-700 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">' +
+                    '<div class="flex items-center"><i data-lucide="file-check" class="w-6 h-6 sm:w-8 sm:h-8 text-green-400 mr-2 sm:mr-3"></i><div><p class="text-white font-medium text-sm">' + (t.cvFileName || 'Resume.pdf') + '</p><p class="text-xs text-gray-500">PDF Document</p></div></div>' +
+                    '<a href="' + t.cvBase64 + '" download="' + (t.cvFileName || t.name + '_CV.pdf') + '" class="bg-green-600 hover:bg-green-500 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center gap-2 transition-colors"><i data-lucide="download" class="w-4 h-4"></i> Download CV</a>' +
                     '</div></div>';
             }
             
-            var contactSection = '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6">' +
-                '<h4 class="font-bold text-lg text-white mb-4 flex items-center"><i data-lucide="phone" class="w-5 h-5 mr-2 text-blue-400"></i> Contact Information</h4>' +
-                '<div class="grid sm:grid-cols-2 gap-4">' +
+            var contactSection = '<div class="bg-gray-800/40 rounded-xl sm:rounded-2xl border border-gray-700/50 p-4 sm:p-6">' +
+                '<h4 class="font-bold text-base sm:text-lg text-white mb-3 sm:mb-4 flex items-center"><i data-lucide="phone" class="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-400"></i> Contact Information</h4>' +
+                '<div class="grid sm:grid-cols-2 gap-3 sm:gap-4">' +
                 (t.email ? '<a href="mailto:' + t.email + '" class="bg-gray-900/80 border border-gray-700 hover:border-blue-500/50 p-4 rounded-xl flex items-center gap-3 transition-colors group"><div class="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center"><i data-lucide="mail" class="w-5 h-5 text-red-400"></i></div><div><p class="text-xs text-gray-500">Email</p><p class="text-sm text-white font-medium group-hover:text-blue-400 transition-colors">' + t.email + '</p></div></a>' : '') +
                 (t.linkedin ? '<a href="' + t.linkedin + '" target="_blank" class="bg-gray-900/80 border border-gray-700 hover:border-blue-500/50 p-4 rounded-xl flex items-center gap-3 transition-colors group"><div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center"><i data-lucide="linkedin" class="w-5 h-5 text-blue-400"></i></div><div><p class="text-xs text-gray-500">LinkedIn</p><p class="text-sm text-white font-medium group-hover:text-blue-400 transition-colors">View Profile</p></div></a>' : '') +
                 (t.github ? '<a href="' + t.github + '" target="_blank" class="bg-gray-900/80 border border-gray-700 hover:border-gray-500/50 p-4 rounded-xl flex items-center gap-3 transition-colors group"><div class="w-10 h-10 bg-gray-600/30 rounded-lg flex items-center justify-center"><i data-lucide="github" class="w-5 h-5 text-gray-300"></i></div><div><p class="text-xs text-gray-500">GitHub</p><p class="text-sm text-white font-medium group-hover:text-gray-300 transition-colors">View Profile</p></div></a>' : '') +
                 '</div></div>';
             
-            modal.innerHTML = '<div class="bg-gray-900 rounded-3xl border border-gray-700/50 shadow-2xl w-full max-w-3xl my-8 overflow-hidden animate-fade-in">' +
+            modal.innerHTML = '<div class="bg-gray-900 rounded-2xl sm:rounded-3xl border border-gray-700/50 shadow-2xl w-full max-w-3xl my-4 sm:my-8 overflow-hidden animate-fade-in">' +
                 '<!-- Close Button -->' +
-                '<button onclick="document.getElementById(\'seeker-profile-modal\').remove()" class="absolute top-6 right-6 z-20 bg-gray-800/90 hover:bg-gray-700 p-2 rounded-xl text-gray-400 hover:text-white transition-colors border border-gray-700"><i data-lucide="x" class="w-5 h-5"></i></button>' +
+                '<button onclick="document.getElementById(\'seeker-profile-modal\').remove()" class="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 bg-gray-800/90 hover:bg-gray-700 p-2 rounded-xl text-gray-400 hover:text-white transition-colors border border-gray-700"><i data-lucide="x" class="w-5 h-5"></i></button>' +
                 '<!-- Cover -->' +
-                '<div class="h-44 relative" style="' + coverStyle + '">' +
+                '<div class="h-32 sm:h-44 relative" style="' + coverStyle + '">' +
                 '<div class="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent"></div>' +
                 '</div>' +
                 '<!-- Profile Header -->' +
-                '<div class="px-8 pb-6 relative -mt-16">' +
-                '<div class="flex flex-col sm:flex-row items-start gap-5">' +
+                '<div class="px-4 sm:px-8 pb-4 sm:pb-6 relative -mt-12 sm:-mt-16">' +
+                '<div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5">' +
                 '<div class="shrink-0">' + profilePicHTML + '</div>' +
-                '<div class="flex-1 pt-2">' +
-                '<h2 class="text-2xl font-bold text-white">' + t.name + '</h2>' +
-                '<p class="text-green-400 font-medium text-lg">' + t.role + '</p>' +
-                (t.location ? '<p class="text-gray-500 text-sm flex items-center mt-1"><i data-lucide="map-pin" class="w-4 h-4 mr-1"></i> ' + t.location + '</p>' : '') +
+                '<div class="flex-1 text-center sm:text-left pt-1 sm:pt-2">' +
+                '<h2 class="text-xl sm:text-2xl font-bold text-white">' + t.name + '</h2>' +
+                '<p class="text-green-400 font-medium text-sm sm:text-lg">' + t.role + '</p>' +
+                (t.location ? '<p class="text-gray-500 text-xs sm:text-sm flex items-center justify-center sm:justify-start mt-1"><i data-lucide="map-pin" class="w-3 h-3 sm:w-4 sm:h-4 mr-1"></i> ' + t.location + '</p>' : '') +
                 (t.available ? '<span class="inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-green-500/20 text-green-400 border border-green-500/30">Available for hire</span>' : '') +
                 '</div>' +
                 '</div>' +
                 '</div>' +
                 '<!-- Body -->' +
-                '<div class="px-8 pb-8 space-y-6">' +
-                (t.bio ? '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6"><h4 class="font-bold text-lg text-white mb-3 flex items-center"><i data-lucide="user" class="w-5 h-5 mr-2 text-green-400"></i> About</h4><p class="text-gray-300 text-sm leading-relaxed whitespace-pre-line">' + t.bio + '</p></div>' : '') +
+                '<div class="px-4 sm:px-8 pb-6 sm:pb-8 space-y-4 sm:space-y-6">' +
+                (t.bio ? '<div class="bg-gray-800/40 rounded-xl sm:rounded-2xl border border-gray-700/50 p-4 sm:p-6"><h4 class="font-bold text-base sm:text-lg text-white mb-2 sm:mb-3 flex items-center"><i data-lucide="user" class="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-green-400"></i> About</h4><p class="text-gray-300 text-xs sm:text-sm leading-relaxed whitespace-pre-line">' + t.bio + '</p></div>' : '') +
                 '<!-- Skills -->' +
-                '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6"><h4 class="font-bold text-lg text-white mb-4 flex items-center"><i data-lucide="code" class="w-5 h-5 mr-2 text-yellow-400"></i> Skills</h4><div class="flex flex-wrap gap-2">' + skillsHTML + '</div></div>' +
+                '<div class="bg-gray-800/40 rounded-xl sm:rounded-2xl border border-gray-700/50 p-4 sm:p-6"><h4 class="font-bold text-base sm:text-lg text-white mb-3 sm:mb-4 flex items-center"><i data-lucide="code" class="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-yellow-400"></i> Skills</h4><div class="flex flex-wrap gap-2">' + skillsHTML + '</div></div>' +
                 '<!-- Experience -->' +
-                '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6"><h4 class="font-bold text-lg text-white mb-4 flex items-center"><i data-lucide="briefcase" class="w-5 h-5 mr-2 text-blue-400"></i> Experience & Projects</h4><div class="space-y-4">' + expHTML + '</div></div>' +
+                '<div class="bg-gray-800/40 rounded-xl sm:rounded-2xl border border-gray-700/50 p-4 sm:p-6"><h4 class="font-bold text-base sm:text-lg text-white mb-3 sm:mb-4 flex items-center"><i data-lucide="briefcase" class="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-400"></i> Experience & Projects</h4><div class="space-y-3 sm:space-y-4">' + expHTML + '</div></div>' +
                 '<!-- Education -->' +
-                '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6"><h4 class="font-bold text-lg text-white mb-4 flex items-center"><i data-lucide="graduation-cap" class="w-5 h-5 mr-2 text-purple-400"></i> Education</h4><div class="space-y-4">' + eduHTML + '</div></div>' +
+                '<div class="bg-gray-800/40 rounded-xl sm:rounded-2xl border border-gray-700/50 p-4 sm:p-6"><h4 class="font-bold text-base sm:text-lg text-white mb-3 sm:mb-4 flex items-center"><i data-lucide="graduation-cap" class="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-purple-400"></i> Education</h4><div class="space-y-3 sm:space-y-4">' + eduHTML + '</div></div>' +
                 '<!-- Certifications -->' +
-                '<div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6"><h4 class="font-bold text-lg text-white mb-4 flex items-center"><i data-lucide="award" class="w-5 h-5 mr-2 text-orange-400"></i> Certifications</h4><div class="space-y-3">' + certHTML + '</div></div>' +
+                '<div class="bg-gray-800/40 rounded-xl sm:rounded-2xl border border-gray-700/50 p-4 sm:p-6"><h4 class="font-bold text-base sm:text-lg text-white mb-3 sm:mb-4 flex items-center"><i data-lucide="award" class="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-orange-400"></i> Certifications</h4><div class="space-y-3">' + certHTML + '</div></div>' +
                 cvSection +
                 contactSection +
+                (window.renderUserCommunityPosts ? window.renderUserCommunityPosts(t.id, t.name) : '') +
                 '</div></div>';
             
             document.body.appendChild(modal);
