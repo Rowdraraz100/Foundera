@@ -760,10 +760,10 @@ function switchDashboardTab(tab) {
         var panel = document.getElementById('dpanel-' + t);
         if (t === tab) {
             panel.style.display = 'block';
-            btn.className = 'dashboard-tab active flex-1 px-4 py-3.5 text-sm font-semibold text-' + colors[t] + '-400 border-b-2 border-' + colors[t] + '-500 bg-white/5 transition-all';
+            btn.className = 'dashboard-tab active flex-1 px-4 py-2.5 text-sm font-semibold text-' + colors[t] + '-300 bg-' + colors[t] + '-500/15 rounded-xl border border-' + colors[t] + '-500/30 shadow-sm transition-all';
         } else {
             panel.style.display = 'none';
-            btn.className = 'dashboard-tab flex-1 px-4 py-3.5 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-' + colors[t] + '-400 transition-all';
+            btn.className = 'dashboard-tab flex-1 px-4 py-2.5 text-sm font-medium text-gray-400 rounded-xl border border-transparent hover:bg-white/5 hover:text-' + colors[t] + '-300 transition-all';
         }
     });
     if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -773,54 +773,69 @@ function switchDashboardTab(tab) {
 function HomeView() {
     return '<div class="flex flex-col">' +
         /* Hero */
-        '<section class="w-full bg-[#1a0b2e] text-white relative min-h-[85vh] flex items-center overflow-hidden">' +
-            '<div class="absolute inset-0 overflow-hidden">' +
-                '<div class="absolute top-1/2 right-0 w-[600px] h-[600px] -translate-y-1/2 translate-x-1/4"><div class="absolute inset-0 bg-gradient-to-l from-purple-600/40 via-purple-500/20 to-transparent rounded-full blur-[100px]"></div><div class="absolute inset-0 bg-gradient-to-br from-violet-500/30 via-fuchsia-500/20 to-transparent rounded-full blur-[80px] animate-pulse"></div></div>' +
-                '<div class="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-700/20 rounded-full blur-[80px]"></div>' +
+        '<section class="w-full bg-[#0b0616] text-white relative min-h-[85vh] flex items-center overflow-hidden">' +
+            '<div class="absolute inset-0">' +
+                '<div class="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-purple-600/15 rounded-full blur-[140px]"></div>' +
+                '<div class="absolute bottom-0 right-1/4 w-[400px] h-[300px] bg-cyan-500/10 rounded-full blur-[100px]"></div>' +
             '</div>' +
             '<div class="relative py-20 px-6 flex flex-col md:flex-row items-center justify-between max-w-7xl mx-auto w-full gap-12">' +
                 '<div class="flex-1 text-left space-y-8 z-10">' +
-                    '<h1 class="hero-font text-5xl md:text-7xl font-bold text-white animate-text-spring leading-[1.1] hero-glow"><span class="text-white animate-shimmer">World\'s First</span><br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-violet-400 to-fuchsia-400 animate-gradient">Integrated Platform</span></h1>' +
-                    '<p class="hero-font text-xl md:text-2xl text-gray-300 animate-text-spring delay-100 max-w-xl leading-relaxed">Connecting <span class="text-purple-400 font-semibold animate-pulse-text">Founders</span>, <span class="text-cyan-400 font-semibold animate-pulse-text delay-200">Job Seekers</span> & <span class="text-emerald-400 font-semibold animate-pulse-text delay-400">Investors</span> in one single platform.</p>' +
-                    '<div class="flex flex-wrap gap-4 animate-text-spring delay-200"><button onclick="navigateTo(\'signup\')" class="bg-[#7c3aed] hover:bg-[#8b5cf6] text-white font-semibold px-8 py-4 rounded-full text-base transition-all shadow-lg hover:shadow-xl hover:scale-105 hover:shadow-purple-500/40">Sign up with email</button></div>' +
-                    '<p class="text-gray-400 text-sm animate-text-spring delay-300">By signing up, you agree to Foundera\'s <a href="#" class="text-gray-300 underline hover:text-white">Terms of Service</a>.</p>' +
+                    '<h1 class="hero-font text-5xl md:text-7xl font-bold text-white hero-reveal leading-[1.1] hero-glow"><span class="hero-glint">World\'s First</span><br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-violet-400 to-fuchsia-400 hero-gradient-drift">Integrated Platform</span></h1>' +
+                    '<p class="hero-font text-xl md:text-2xl text-gray-300 hero-reveal delay-100 max-w-xl leading-relaxed">Connecting <span class="text-purple-400 font-semibold animate-pulse-text">Founders</span>, <span class="text-cyan-400 font-semibold animate-pulse-text delay-200">Job Seekers</span> & <span class="text-emerald-400 font-semibold animate-pulse-text delay-400">Investors</span> in one single platform.</p>' +
+                    '<div class="flex flex-wrap gap-4 hero-reveal delay-200"><button onclick="navigateTo(\'signup\')" class="bg-[#7c3aed] hover:bg-[#8b5cf6] text-white font-semibold px-8 py-4 rounded-full text-base transition-all shadow-lg hover:shadow-xl hover:scale-105 hover:shadow-purple-500/40">Sign up with email</button></div>' +
+                    '<p class="text-gray-400 text-sm hero-reveal delay-300">By signing up, you agree to Foundera\'s <a href="#" class="text-gray-300 underline hover:text-white">Terms of Service</a>.</p>' +
                 '</div>' +
-                /* Orbit Animation */
+                /* Motion Stage */
                 '<div class="flex-1 w-full relative h-[350px] md:h-[500px] z-10 flex items-center justify-center">' +
-                    '<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-lg pointer-events-none scale-[0.6] md:scale-100 transition-transform">' +
-                        '<div class="absolute top-1/2 left-1/2 w-56 h-56 bg-gradient-to-tr from-fuchsia-500 to-purple-500 rounded-full blur-[100px] animate-[center-glow_4s_infinite] opacity-50"></div>' +
-                        '<div class="absolute top-1/2 left-1/2 w-32 h-32 bg-white rounded-full blur-[60px] animate-[center-glow_3s_infinite] opacity-20"></div>' +
-                        '<div class="absolute top-1/4 left-1/4 w-2 h-2 bg-purple-400 rounded-full animate-particle"></div>' +
-                        '<div class="absolute top-3/4 right-1/4 w-3 h-3 bg-cyan-400 rounded-full animate-particle delay-300"></div>' +
-                        '<div class="absolute top-1/2 right-1/3 w-2 h-2 bg-emerald-400 rounded-full animate-particle delay-500"></div>' +
-                        '<div class="absolute top-1/2 left-1/2 w-[200px] h-[200px] -mt-[100px] -ml-[100px] border border-dashed border-purple-400/50 rounded-full animate-orbit"><div class="absolute top-0 left-1/2 -mt-8 -ml-8 w-16 h-16 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center animate-counter shadow-xl shadow-purple-500/40"><i data-lucide="lightbulb" class="text-white w-7 h-7"></i><span class="absolute -bottom-6 text-xs text-purple-300 font-medium whitespace-nowrap">Founders</span></div></div>' +
-                        '<div class="absolute top-1/2 left-1/2 w-[320px] h-[320px] -mt-[160px] -ml-[160px] border border-dashed border-cyan-400/40 rounded-full animate-orbit-reverse"><div class="absolute top-[10%] -left-8 w-16 h-16 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-2xl flex items-center justify-center animate-counter-reverse shadow-xl shadow-cyan-500/40"><i data-lucide="users" class="text-white w-7 h-7"></i><span class="absolute -bottom-6 text-xs text-cyan-300 font-medium whitespace-nowrap">Job Seekers</span></div><div class="absolute bottom-[15%] -right-6 w-14 h-14 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center animate-counter-reverse shadow-lg shadow-blue-500/30 animate-bounce-slow"><i data-lucide="briefcase" class="text-white w-6 h-6"></i></div></div>' +
-                        '<div class="absolute top-1/2 left-1/2 w-[440px] h-[440px] -mt-[220px] -ml-[220px] border border-dashed border-emerald-400/30 rounded-full animate-orbit" style="animation-duration:50s"><div class="absolute bottom-[5%] left-1/2 -ml-8 w-16 h-16 bg-gradient-to-br from-emerald-400 to-green-500 rounded-2xl flex items-center justify-center animate-counter shadow-xl shadow-emerald-500/40" style="animation-duration:50s"><i data-lucide="trending-up" class="text-white w-7 h-7"></i><span class="absolute -bottom-6 text-xs text-emerald-300 font-medium whitespace-nowrap">Investors</span></div><div class="absolute top-[20%] -right-5 w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center animate-counter shadow-lg shadow-amber-500/30 animate-pulse" style="animation-duration:50s"><i data-lucide="dollar-sign" class="text-white w-5 h-5"></i></div></div>' +
-                        '<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-gradient-to-br from-purple-600 via-violet-600 to-fuchsia-600 rounded-full flex items-center justify-center shadow-2xl shadow-purple-500/50 animate-pulse-slow border-4 border-white/20"><i data-lucide="rocket" class="text-white w-8 h-8"></i></div>' +
+                    '<div class="hero-stage">' +
+                        '<div class="hero-grid"></div>' +
+                        '<div class="hero-network-glow"></div>' +
+                        '<div class="hero-pulse-ring"></div>' +
+                        '<div class="hero-orbit-ring"></div>' +
+                        '<div class="hero-hub-ring"></div>' +
+                        '<div class="hero-link hero-link-founder"></div>' +
+                        '<div class="hero-link hero-link-seeker"></div>' +
+                        '<div class="hero-link hero-link-investor"></div>' +
+                        '<div class="hero-hub"><i data-lucide="rocket" class="text-white w-7 h-7"></i></div>' +
+                        '<div class="hero-tile hero-tile-founder"><div class="hero-tile-icon hero-tile-icon-purple"><i data-lucide="lightbulb" class="text-white w-5 h-5"></i></div><div class="hero-tile-title">Founders</div><div class="hero-tile-sub">Share Idea</div></div>' +
+                        '<div class="hero-tile hero-tile-seeker"><div class="hero-tile-icon hero-tile-icon-cyan"><i data-lucide="users" class="text-white w-5 h-5"></i></div><div class="hero-tile-title">Job Seekers</div><div class="hero-tile-sub">Find Jobs</div></div>' +
+                        '<div class="hero-tile hero-tile-investor"><div class="hero-tile-icon hero-tile-icon-emerald"><i data-lucide="trending-up" class="text-white w-5 h-5"></i></div><div class="hero-tile-title">Investors</div><div class="hero-tile-sub">Find Startup</div></div>' +
                     '</div>' +
                 '</div>' +
             '</div>' +
+        '</div>' +
         '</section>' +
 
         /* Platform Preview — Dashboard Screenshot Showcase */
-        '<section class="w-full bg-[#1a0b2e] relative overflow-hidden pb-24">' +
+        '<section class="w-full bg-[#0b0616] relative overflow-hidden pb-24">' +
             '<div class="absolute inset-0"><div class="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-purple-600/15 rounded-full blur-[140px]"></div><div class="absolute bottom-0 right-1/4 w-[400px] h-[300px] bg-cyan-500/10 rounded-full blur-[100px]"></div></div>' +
             '<div class="max-w-6xl mx-auto px-6 relative z-10">' +
                 '<div class="text-center mb-14 scroll-reveal reveal-up">' +
-                    '<div class="inline-flex items-center gap-2 bg-purple-500/15 border border-purple-500/30 rounded-full px-5 py-2 mb-8"><span class="text-purple-400 text-sm font-semibold">Inside Foundera</span><span class="text-gray-300 text-sm">Experience the platform →</span></div>' +
+                    '<div class="inline-flex items-center justify-center mb-8">' +
+                        '<div class="inline-flex items-center rounded-full bg-gradient-to-r from-purple-500/40 via-violet-500/30 to-fuchsia-500/40 p-[1px] shadow-[0_0_30px_rgba(124,58,237,0.25)]">' +
+                            '<div class="inline-flex items-center gap-3 rounded-full bg-[#12071f]/80 px-4 py-2 backdrop-blur-xl">' +
+                                '<span class="inline-flex items-center rounded-full bg-gradient-to-r from-purple-500 to-violet-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">Inside Foundera</span>' +
+                                '<span class="text-gray-300 text-sm font-medium">Experience the platform <span class="text-gray-200">→</span></span>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
                     '<h2 class="hero-font text-3xl md:text-5xl font-bold text-white mb-5 leading-tight">Your Dashboard,<br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-cyan-400 to-emerald-400">Your Command Center</span></h2>' +
                     '<p class="text-gray-400 max-w-2xl mx-auto text-base md:text-lg leading-relaxed">Every role gets a personalized experience. Here\'s a real look at what you\'ll get inside Foundera.</p>' +
                 '</div>' +
                 /* Screenshot Tabs */
                 '<div class="scroll-reveal reveal-scale relative">' +
-                    '<div class="absolute -inset-6 bg-gradient-to-b from-purple-600/25 via-purple-500/10 to-transparent rounded-[36px] blur-2xl"></div>' +
-                    '<div class="relative bg-gradient-to-b from-[#2d1b69]/80 to-[#1a0b2e]/90 rounded-3xl border border-purple-500/20 overflow-hidden shadow-2xl shadow-purple-900/50">' +
-                        /* Tab bar */
-                        '<div class="flex items-center gap-0 bg-black/40 border-b border-white/5">' +
-                            '<button onclick="switchDashboardTab(\'founder\')" id="dtab-founder" class="dashboard-tab active flex-1 px-4 py-4 text-sm font-semibold text-purple-400 border-b-2 border-purple-500 bg-white/5 transition-all"><i data-lucide="lightbulb" class="w-4 h-4 inline mr-1.5"></i>Founder Dashboard</button>' +
-                            '<button onclick="switchDashboardTab(\'seeker\')" id="dtab-seeker" class="dashboard-tab flex-1 px-4 py-4 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-cyan-400 transition-all"><i data-lucide="briefcase" class="w-4 h-4 inline mr-1.5"></i>Job Seeker</button>' +
-                            '<button onclick="switchDashboardTab(\'investor\')" id="dtab-investor" class="dashboard-tab flex-1 px-4 py-4 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-emerald-400 transition-all"><i data-lucide="trending-up" class="w-4 h-4 inline mr-1.5"></i>Investor</button>' +
-                        '</div>' +
+                    '<div class="dashboard-shell">' +
+                        '<div class="dashboard-shell-inner">' +
+                            '<div class="dashboard-shell-top">' +
+                                '<div class="dashboard-shell-title">Foundera Workspace</div>' +
+                                '<div class="dashboard-shell-dots"><span></span><span></span><span></span></div>' +
+                            '</div>' +
+                            '<div class="dashboard-tabbar">' +
+                                '<button onclick="switchDashboardTab(\'founder\')" id="dtab-founder" class="dashboard-tab active flex-1 px-4 py-2.5 text-sm font-semibold text-purple-300 bg-purple-500/15 rounded-xl border border-purple-500/30 shadow-sm transition-all"><i data-lucide="lightbulb" class="w-4 h-4 inline mr-1.5"></i>Founder Dashboard</button>' +
+                                '<button onclick="switchDashboardTab(\'seeker\')" id="dtab-seeker" class="dashboard-tab flex-1 px-4 py-2.5 text-sm font-medium text-gray-400 rounded-xl border border-transparent hover:bg-white/5 hover:text-cyan-300 transition-all"><i data-lucide="briefcase" class="w-4 h-4 inline mr-1.5"></i>Job Seeker</button>' +
+                                '<button onclick="switchDashboardTab(\'investor\')" id="dtab-investor" class="dashboard-tab flex-1 px-4 py-2.5 text-sm font-medium text-gray-400 rounded-xl border border-transparent hover:bg-white/5 hover:text-emerald-300 transition-all"><i data-lucide="trending-up" class="w-4 h-4 inline mr-1.5"></i>Investor</button>' +
+                            '</div>' +
+                            '<div class="dashboard-shell-body">' +
                         /* Founder Panel — Screenshots */
                         '<div id="dpanel-founder" class="dashboard-panel p-4 md:p-6">' +
                             '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">' +
@@ -851,16 +866,18 @@ function HomeView() {
                             '</div>' +
                             '<div class="mt-4 flex items-center justify-center gap-3"><div class="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2"><i data-lucide="trending-up" class="w-4 h-4 text-emerald-400"></i><span class="text-emerald-300 text-xs font-medium">Browse Deals • Track Portfolio • Deploy Capital</span></div></div>' +
                         '</div>' +
+                        '</div>' +
                     '</div>' +
                 '</div>' +
             '</div>' +
+        '</div>' +
         '</section>' +
 
-        /* Dream to Reality */
-        '<section class="bg-gradient-to-b from-[#1a0b2e] to-[#1E1B4B] py-24 px-6 relative overflow-hidden">' +
+        /* Dreams to Reality */
+        '<section class="bg-[#0b0616] py-24 px-6 relative overflow-hidden">' +
             '<div class="absolute top-0 left-1/4 w-72 h-72 bg-purple-600/10 rounded-full blur-[100px]"></div><div class="absolute bottom-0 right-1/4 w-64 h-64 bg-cyan-500/10 rounded-full blur-[80px]"></div>' +
             '<div class="max-w-6xl mx-auto relative z-10">' +
-                '<div class="text-center mb-16"><h2 class="text-4xl md:text-6xl font-extrabold text-white mb-4 animate-text-spring"><span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-violet-400">Dream</span> to <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-emerald-400">Reality</span></h2><p class="text-xl md:text-2xl text-gray-400 animate-text-spring delay-100">Want to make your dreams come true?</p></div>' +
+            '<div class="text-center mb-16"><h2 class="text-4xl md:text-6xl font-extrabold text-white mb-4 animate-text-spring"><span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-violet-400">Dreams</span> to <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-emerald-400">Reality</span></h2><p class="text-xl md:text-2xl text-gray-400 animate-text-spring delay-100">Want to make your dreams come true?</p></div>' +
                 '<div class="grid md:grid-cols-3 gap-8">' +
                     /* Card 1 */
                     '<div class="group relative animate-slide-up"><div class="absolute inset-0 bg-gradient-to-br from-purple-600 to-violet-600 rounded-3xl blur-xl opacity-0 group-hover:opacity-40 transition-all duration-500"></div><div class="relative glass-card rounded-3xl p-8 h-full border border-purple-500/20 hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-2"><div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform"><i data-lucide="lightbulb" class="text-white w-8 h-8"></i></div><h3 class="text-2xl font-bold text-white mb-3">Share Your Idea</h3><p class="text-gray-400 mb-6 leading-relaxed">Got a groundbreaking startup idea? Share it with the world and find the perfect co-founders & team.</p><div class="flex items-center text-purple-400 font-medium group-hover:text-purple-300"><span>Start as Founder</span><i data-lucide="arrow-right" class="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform"></i></div></div></div>' +
@@ -874,45 +891,29 @@ function HomeView() {
         '</section>' +
 
         /* Vision & Mission */
-        '<section id="vision-mission" class="bg-[#1E1B4B] py-32 px-6 relative overflow-hidden">' +
+        '<section id="vision-mission" class="bg-[#0b0616] py-32 px-6 relative overflow-hidden">' +
             '<div class="absolute top-1/4 left-10 w-40 h-40 bg-purple-500/25 rounded-3xl blur-3xl animate-float"></div><div class="absolute bottom-1/4 right-10 w-56 h-56 bg-blue-500/15 rounded-full blur-3xl animate-float delay-500"></div><div class="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-gradient-to-b from-purple-600/10 to-transparent rounded-full blur-[120px]"></div>' +
             '<div class="max-w-7xl mx-auto relative z-10">' +
                 '<div class="text-center mb-20 scroll-reveal reveal-up">' +
-                    '<div class="inline-flex items-center gap-2 bg-purple-500/15 border border-purple-500/30 rounded-full px-5 py-2 mb-6"><i data-lucide="sparkles" class="w-4 h-4 text-purple-400"></i><span class="text-purple-300 text-sm font-semibold">What Drives Us</span></div>' +
-                    '<h2 class="text-4xl md:text-6xl font-black text-white mb-6">Our Vision & <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 animate-gradient">Mission</span></h2>' +
+                    '<div class="vm-kicker"><span class="vm-kicker-line"></span><span class="vm-kicker-chip"><i data-lucide="sparkles" class="w-4 h-4"></i>What Drives Us</span><span class="vm-kicker-line"></span></div>' +
+                    '<h2 class="vm-title text-4xl md:text-6xl text-white mb-6">Our Vision & <span class="vm-title-gradient text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">Mission</span></h2>' +
                     '<p class="text-slate-400 max-w-xl mx-auto text-lg">Building a future where tech, talent, and capital thrive together.</p>' +
                 '</div>' +
                 '<div class="grid md:grid-cols-2 gap-12">' +
-                    '<div class="scroll-reveal reveal-left vm-card-vision relative group">' +
-                        '<div class="absolute -inset-1 bg-gradient-to-br from-blue-500/30 via-cyan-400/20 to-transparent rounded-[44px] blur-xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>' +
-                        '<div class="relative glass-card rounded-[40px] p-12 border border-blue-500/15 hover:border-blue-400/40 transition-all duration-500 hover:-translate-y-3 hover:shadow-2xl hover:shadow-blue-500/15 overflow-hidden">' +
-                            '<div class="absolute top-0 right-0 w-40 h-40 bg-blue-500/8 rounded-full blur-2xl translate-x-10 -translate-y-10 group-hover:scale-150 transition-transform duration-700"></div>' +
-                            '<div class="relative z-10">' +
-                                '<div class="bg-gradient-to-br from-blue-500 to-cyan-400 w-16 h-16 rounded-2xl flex items-center justify-center mb-10 shadow-lg shadow-blue-500/30 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-xl group-hover:shadow-blue-500/40 transition-all duration-500"><i data-lucide="eye" class="text-white w-8 h-8"></i></div>' +
-                                '<h3 class="text-3xl font-bold text-white mb-6">Our Vision</h3>' +
-                                '<p class="text-xl text-slate-300 leading-relaxed font-light">To create a world where <span class="text-blue-400 font-semibold">everyone</span>—whether you have a big idea, specialized skills, or capital—can work together effortlessly.</p>' +
-                                '<div class="mt-10 flex items-center gap-3">' +
-                                    '<div class="h-1.5 w-14 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full group-hover:w-24 transition-all duration-700 shadow-lg shadow-blue-500/30"></div>' +
-                                    '<div class="h-1.5 w-4 bg-slate-700 rounded-full group-hover:bg-blue-500/40 transition-all duration-500"></div>' +
-                                    '<div class="h-1.5 w-4 bg-slate-700 rounded-full group-hover:bg-blue-500/20 transition-all duration-500 delay-100"></div>' +
-                                '</div>' +
-                            '</div>' +
+                    '<div class="scroll-reveal reveal-left vm-card-vision">' +
+                        '<div class="vm-panel vm-panel--vision">' +
+                            '<div class="vm-icon vm-icon--vision"><i data-lucide="eye" class="text-white w-6 h-6"></i></div>' +
+                            '<h3 class="vm-panel-title">Our Vision</h3>' +
+                            '<p class="vm-panel-text">To build an ecosystem where <span class="vm-em">founders</span>, <span class="vm-em">talent</span>, and <span class="vm-em">capital</span> align with clarity and trust. We envision a space where early ideas get structured guidance, the right co-builders are easy to discover, and funding paths are transparent from day one.</p>' +
+                            '<div class="vm-meter"><span class="vm-meter__active"></span><span></span><span></span></div>' +
                         '</div>' +
                     '</div>' +
-                    '<div class="scroll-reveal reveal-right vm-card-mission relative group" style="animation-delay:200ms">' +
-                        '<div class="absolute -inset-1 bg-gradient-to-br from-purple-500/30 via-pink-400/20 to-transparent rounded-[44px] blur-xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>' +
-                        '<div class="relative glass-card rounded-[40px] p-12 border border-purple-500/15 hover:border-purple-400/40 transition-all duration-500 hover:-translate-y-3 hover:shadow-2xl hover:shadow-purple-500/15 overflow-hidden">' +
-                            '<div class="absolute top-0 right-0 w-40 h-40 bg-purple-500/8 rounded-full blur-2xl translate-x-10 -translate-y-10 group-hover:scale-150 transition-transform duration-700"></div>' +
-                            '<div class="relative z-10">' +
-                                '<div class="bg-gradient-to-br from-purple-500 to-pink-400 w-16 h-16 rounded-2xl flex items-center justify-center mb-10 shadow-lg shadow-purple-500/30 group-hover:scale-110 group-hover:-rotate-6 group-hover:shadow-xl group-hover:shadow-purple-500/40 transition-all duration-500"><i data-lucide="target" class="text-white w-8 h-8"></i></div>' +
-                                '<h3 class="text-3xl font-bold text-white mb-6">Our Mission</h3>' +
-                                '<p class="text-xl text-slate-300 leading-relaxed font-light">To <span class="text-purple-400 font-semibold">connect</span> the right people so ideas can grow, workers find dream jobs, and investors find the next big startups.</p>' +
-                                '<div class="mt-10 flex items-center gap-3">' +
-                                    '<div class="h-1.5 w-4 bg-slate-700 rounded-full group-hover:bg-purple-500/20 transition-all duration-500 delay-100"></div>' +
-                                    '<div class="h-1.5 w-14 bg-gradient-to-r from-purple-500 to-pink-400 rounded-full group-hover:w-24 transition-all duration-700 shadow-lg shadow-purple-500/30"></div>' +
-                                    '<div class="h-1.5 w-4 bg-slate-700 rounded-full group-hover:bg-purple-500/40 transition-all duration-500"></div>' +
-                                '</div>' +
-                            '</div>' +
+                    '<div class="scroll-reveal reveal-right vm-card-mission" style="animation-delay:200ms">' +
+                        '<div class="vm-panel vm-panel--mission">' +
+                            '<div class="vm-icon vm-icon--mission"><i data-lucide="target" class="text-white w-6 h-6"></i></div>' +
+                            '<h3 class="vm-panel-title">Our Mission</h3>' +
+                            '<p class="vm-panel-text">To connect <span class="vm-em">founders</span>, <span class="vm-em">job seekers</span>, and <span class="vm-em">investors</span> with trusted profiles, smart matching, and real collaboration. We focus on verified signals, role-based dashboards, and tools that help teams execute faster while keeping communication and expectations aligned.</p>' +
+                            '<div class="vm-meter vm-meter--right"><span></span><span class="vm-meter__active"></span><span></span></div>' +
                         '</div>' +
                     '</div>' +
                 '</div>' +
@@ -947,6 +948,19 @@ function HomeView() {
                         '<div class="bg-gray-900 text-white p-8 rounded-full w-48 h-48 mx-auto flex flex-col items-center justify-center shadow-2xl transform hover:scale-105 transition-all"><i data-lucide="star" class="text-yellow-400 w-8 h-8 mb-2"></i><h3 class="text-xl font-bold">Your Startup</h3><p class="text-gray-400 text-[10px] mt-2 uppercase">Brought To Life</p></div>' +
                         '<div class="space-y-6"><div class="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-green-500 text-left"><h4 class="font-bold">The Builder</h4><p class="text-sm text-gray-600">"I have the skills to build impactful products."</p></div><div class="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-purple-500 text-left"><h4 class="font-bold">The Backer</h4><p class="text-sm text-gray-600">"I\'m looking to invest in early-stage startups."</p></div></div>' +
                     '</div>' +
+                '</div>' +
+            '</div>' +
+        '</section>' +
+
+        /* Foundera CTA */
+        '<section class="foundera-cta">' +
+            '<div class="foundera-cta__panel">' +
+                '<div class="foundera-cta__grid"></div>' +
+                '<div class="foundera-cta__content">' +
+                    '<div class="foundera-cta__icon"><img src="images/founderaLogo.jpeg" alt="Foundera"></div>' +
+                    '<h2 class="foundera-cta__title">Build the Future, Together.</h2>' +
+                    '<p class="foundera-cta__subtitle">Foundera connects founders, job seekers, and investors so ideas turn into real startups faster.</p>' +
+                    '<button onclick="navigateTo(\'signup\')" class="foundera-cta__btn">Join Foundera<span>→</span></button>' +
                 '</div>' +
             '</div>' +
         '</section>' +
