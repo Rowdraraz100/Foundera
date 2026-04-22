@@ -13,11 +13,16 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/common.css">
+    
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics-compat.js"></script>
+    
+    <!-- EmailJS SDK (Added for OTP Emails) -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    
     <script>
         // Firebase Configuration
         const firebaseConfig = {
@@ -51,7 +56,7 @@
     <div id="app-root"></div>
     <div id="footer-root"></div>
 
-    <script src="js/home.js"></script>
+    <script src="js/home.js"></script> <!-- Assuming this is where app.js content is kept -->
     <script src="js/preloader.js"></script>
 </body>
 </html>

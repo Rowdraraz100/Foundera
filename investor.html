@@ -115,7 +115,7 @@
                             <span id="notif-count-badge" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full text-[10px] font-bold text-white items-center justify-center px-1" style="display:none">0</span>
                         </button>
                     </div>
-                    <div onclick="setTab('profile')" class="cursor-pointer w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-lg font-bold shadow-lg">
+                    <div id="header-avatar-container" onclick="setTab('profile')" class="cursor-pointer w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-lg font-bold shadow-lg overflow-hidden">
                         <span id="user-initial">I</span>
                     </div>
                 </div>
@@ -125,6 +125,7 @@
             <div id="content" class="animate-fade-in pb-20"></div>
         </main>
     </div>
+    
     <script src="js/community.js"></script>
     <script src="js/investor.js"></script>
 </body>

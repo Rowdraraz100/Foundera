@@ -76,7 +76,7 @@
                     '<span class="text-xs text-gray-500">' + timeAgo + '</span>' +
                 '</div>' +
                 '<p class="text-gray-200 text-sm leading-relaxed whitespace-pre-line mb-3">' + _escHtml(post.content) + '</p>' +
-                (post.imageBase64 ? '<div class="mb-3 rounded-lg overflow-hidden border border-gray-700/50"><img src="' + post.imageBase64 + '" class="w-full max-h-48 object-cover"></div>' : '') +
+                (post.imageBase64 ? '<div class="mb-3 rounded-lg overflow-hidden border border-gray-700/50 bg-gray-900/50"><img src="' + post.imageBase64 + '" class="w-full max-h-96 object-contain"></div>' : '') +
                 '<div class="flex items-center gap-4 text-xs text-gray-500">' +
                     (totalReactions > 0 ? '<span class="flex items-center gap-1">\u{1F44D} ' + totalReactions + ' reactions</span>' : '') +
                     (comments > 0 ? '<span class="flex items-center gap-1">\u{1F4AC} ' + comments + ' comments</span>' : '') +
@@ -449,7 +449,7 @@
                             '<p class="text-gray-200 text-sm leading-relaxed whitespace-pre-line">' + _escHtml(post.content) + '</p>' +
                         '</div>' +
                         // Image attachment
-                        (post.imageBase64 ? '<div class="mb-4 rounded-xl overflow-hidden border border-gray-700/50"><img src="' + post.imageBase64 + '" class="w-full max-h-96 object-cover cursor-pointer hover:opacity-90 transition" onclick="openImageLightbox(this.src)"></div>' : '') +
+                        (post.imageBase64 ? '<div class="mb-4 rounded-xl overflow-hidden border border-gray-700/50 bg-gray-900/50"><img src="' + post.imageBase64 + '" class="w-full max-h-96 object-contain cursor-pointer hover:opacity-90 transition" onclick="openImageLightbox(this.src)"></div>' : '') +
                         // PDF attachment
                         (post.pdfBase64 ? '<div class="mb-4 flex items-center gap-3 bg-gray-900/60 p-3 rounded-xl border border-gray-700/50"><div class="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center shrink-0"><i data-lucide="file-text" class="w-5 h-5 text-red-400"></i></div><div class="flex-1 min-w-0"><p class="text-sm font-medium text-white truncate">' + _escHtml(post.pdfFileName || 'Document.pdf') + '</p><p class="text-xs text-gray-500">PDF Attachment</p></div><a href="' + post.pdfBase64 + '" download="' + _escHtml(post.pdfFileName || 'document.pdf') + '" class="text-indigo-400 hover:text-indigo-300 p-2 transition"><i data-lucide="download" class="w-5 h-5"></i></a></div>' : '') +
                         // Reaction summary — clickable to see who reacted
@@ -470,9 +470,9 @@
                             '</div>' +
                             '<button onclick="toggleCommunityComments(\'' + post._key + '\')" class="text-xs text-gray-500 hover:text-gray-300 transition flex items-center gap-1"><i data-lucide="message-square" class="w-3.5 h-3.5"></i> ' + comments.length + '</button>' +
                         '</div>' +
-                        // Comments section
-                        '<div id="comments-' + post._key + '" class="' + (comments.length > 2 ? '' : '') + '">' +
-                            (comments.length > 0 ? '<div class="space-y-2.5 mb-3">' + comments.map(function(c) {
+                        // Comments section with fixed max-height and scrollbar (Hidden by default)
+                        '<div id="comments-' + post._key + '" class="hidden">' +
+                            (comments.length > 0 ? '<div class="space-y-2.5 mb-3 max-h-60 overflow-y-auto overscroll-contain pr-2">' + comments.map(function(c) {
                                 return '<div class="flex items-start gap-2.5 community-comment-enter">' +
                                     (c.authorPic ? '<img src="' + c.authorPic + '" class="w-7 h-7 rounded-full object-cover mt-0.5 ring-1 ring-gray-700 cursor-pointer hover:opacity-80 transition" onclick="viewCommunityProfile(\'' + _escHtml(c.authorKey || '') + '\',\'' + _escHtml(c.authorRole || 'Job Seeker') + '\')">' : '<div class="w-7 h-7 bg-gray-700 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-400 mt-0.5 shrink-0 cursor-pointer hover:opacity-80 transition" onclick="viewCommunityProfile(\'' + _escHtml(c.authorKey || '') + '\',\'' + _escHtml(c.authorRole || 'Job Seeker') + '\')">' + (c.authorName ? c.authorName.charAt(0).toUpperCase() : '?') + '</div>') +
                                     '<div class="bg-gray-900/50 px-3 py-2 rounded-xl flex-1">' +
@@ -515,7 +515,7 @@
                         '<textarea id="community-post-content" rows="3" required placeholder="Share something with the Foundera community..." class="w-full px-3 sm:px-4 py-3 bg-gray-900/60 border border-gray-700/50 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500/50 outline-none text-white text-sm resize-none placeholder-gray-600 transition"></textarea>' +
                         // Image preview
                         '<div id="community-img-preview" class="hidden relative">' +
-                            '<img id="community-img-preview-img" class="max-h-48 rounded-xl border border-gray-700/50 object-cover">' +
+                            '<img id="community-img-preview-img" class="max-h-48 w-full rounded-xl border border-gray-700/50 object-contain bg-gray-900/50">' +
                             '<button type="button" onclick="removeCommunityImagePreview()" class="absolute top-2 right-2 bg-black/70 hover:bg-red-500/80 text-white p-1 rounded-lg transition"><i data-lucide="x" class="w-4 h-4"></i></button>' +
                         '</div>' +
                         // PDF preview
@@ -1043,16 +1043,16 @@
                         '<p class="text-gray-200 text-sm leading-relaxed whitespace-pre-line mb-3">' + _escHtml(post.content) + '</p>' +
                     '</div>' +
                     // Image
-                    (post.imageBase64 ? '<div class="mb-3 rounded-xl overflow-hidden border border-gray-700/50"><img src="' + post.imageBase64 + '" class="w-full max-h-64 object-cover cursor-pointer" onclick="openImageLightbox(this.src)"></div>' : '') +
+                    (post.imageBase64 ? '<div class="mb-3 rounded-xl overflow-hidden border border-gray-700/50 bg-gray-900/50"><img src="' + post.imageBase64 + '" class="w-full max-h-96 object-contain cursor-pointer" onclick="openImageLightbox(this.src)"></div>' : '') +
                     // PDF
                     (post.pdfBase64 ? '<div class="mb-3 flex items-center gap-2 bg-gray-900/60 p-2 rounded-xl border border-gray-700/50 text-xs"><i data-lucide="file-text" class="w-4 h-4 text-red-400 shrink-0"></i><span class="text-gray-300 truncate flex-1">' + _escHtml(post.pdfFileName || 'Document.pdf') + '</span></div>' : '') +
                     // Stats
                     '<div class="flex items-center gap-4 text-xs text-gray-500 pt-3 border-t border-gray-700/30">' +
                         (totalReactions > 0 ? '<span onclick="showReactionViewer(\'' + post._key + '\')" class="flex items-center gap-1 cursor-pointer hover:text-gray-300 transition">\u{1F44D} ' + totalReactions + ' reaction' + (totalReactions > 1 ? 's' : '') + '</span>' : '<span class="text-gray-600">No reactions yet</span>') +
-                        '<span class="flex items-center gap-1"><i data-lucide="message-square" class="w-3.5 h-3.5"></i> ' + comments.length + ' comment' + (comments.length !== 1 ? 's' : '') + '</span>' +
+                        '<span onclick="toggleCommunityComments(\'' + post._key + '\')" class="flex items-center gap-1 cursor-pointer hover:text-gray-300 transition"><i data-lucide="message-square" class="w-3.5 h-3.5"></i> ' + comments.length + ' comment' + (comments.length !== 1 ? 's' : '') + '</span>' +
                     '</div>' +
-                    // Comments viewer
-                    (comments.length > 0 ? '<div class="mt-3 space-y-2">' + comments.map(function(c) {
+                    // Comments viewer (Hidden by default)
+                    (comments.length > 0 ? '<div id="comments-' + post._key + '" class="hidden mt-3 space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">' + comments.map(function(c) {
                         return '<div class="flex items-start gap-2">' +
                             (c.authorPic ? '<img src="' + c.authorPic + '" class="w-6 h-6 rounded-full object-cover mt-0.5 cursor-pointer hover:opacity-80" onclick="viewCommunityProfile(\'' + _escHtml(c.authorKey || '') + '\',\'' + _escHtml(c.authorRole || 'Job Seeker') + '\')">' : '<div class="w-6 h-6 bg-gray-700 rounded-full flex items-center justify-center text-[9px] font-bold text-gray-400 mt-0.5 shrink-0 cursor-pointer" onclick="viewCommunityProfile(\'' + _escHtml(c.authorKey || '') + '\',\'' + _escHtml(c.authorRole || 'Job Seeker') + '\')">' + (c.authorName ? c.authorName.charAt(0).toUpperCase() : '?') + '</div>') +
                             '<div class="bg-gray-900/40 px-2.5 py-1.5 rounded-lg flex-1">' +
@@ -1157,7 +1157,7 @@
 
             var commentsHtml = '';
             if (comments.length > 0) {
-                commentsHtml = '<div class="mt-3 pt-3 border-t border-gray-700/30 space-y-2">' +
+                commentsHtml = '<div id="comments-' + post._key + '" class="hidden mt-3 pt-3 border-t border-gray-700/30 space-y-2 max-h-60 overflow-y-auto overscroll-contain pr-2">' +
                     '<p class="text-xs text-gray-500 font-semibold mb-1"><i data-lucide="message-square" class="w-3 h-3 inline mr-1"></i> Comments (' + comments.length + ')</p>' +
                     comments.map(function(c) {
                         return '<div class="flex items-start gap-2">' +
@@ -1178,10 +1178,10 @@
                     '<span class="text-xs text-gray-500">' + timeAgo + '</span>' +
                 '</div>' +
                 '<p class="text-gray-200 text-sm leading-relaxed whitespace-pre-line mb-3">' + _escHtml(post.content) + '</p>' +
-                (post.imageBase64 ? '<div class="mb-3 rounded-lg overflow-hidden border border-gray-700/50"><img src="' + post.imageBase64 + '" class="w-full max-h-48 object-cover cursor-pointer" onclick="openImageLightbox(this.src)"></div>' : '') +
+                (post.imageBase64 ? '<div class="mb-3 rounded-lg overflow-hidden border border-gray-700/50 bg-gray-900/50"><img src="' + post.imageBase64 + '" class="w-full max-h-96 object-contain cursor-pointer" onclick="openImageLightbox(this.src)"></div>' : '') +
                 '<div class="flex items-center gap-4 text-xs text-gray-500">' +
                     (totalReactions > 0 ? '<span onclick="showReactionViewer(\'' + post._key + '\')" class="flex items-center gap-1 cursor-pointer hover:text-gray-300 transition">\u{1F44D} ' + totalReactions + ' reactions</span>' : '') +
-                    '<span class="flex items-center gap-1"><i data-lucide="message-square" class="w-3 h-3"></i> ' + comments.length + ' comments</span>' +
+                    '<span onclick="toggleCommunityComments(\'' + post._key + '\')" class="flex items-center gap-1 cursor-pointer hover:text-gray-300 transition"><i data-lucide="message-square" class="w-3 h-3"></i> ' + comments.length + ' comments</span>' +
                 '</div>' +
                 commentsHtml +
             '</div>';

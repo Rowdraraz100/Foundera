@@ -23,6 +23,9 @@
             cvBase64: '',
             cvFileName: localStorage.getItem('seekerCvFileName') || ''
         };
+
+        // Jobseeker AI Cache
+        let jobseekerAIMatchCache = null;
         
         // --- LOAD PROFILE FROM FIREBASE (for data persistence across sessions) ---
         function loadJobseekerProfileFromFirebase() {
@@ -62,6 +65,12 @@
                     if (Array.isArray(data.projects) && data.projects.length > 0) {
                         userProjects = data.projects;
                     }
+                    
+                    // Load applications from firebase if exist
+                    if (data.applications) {
+                        userApplications = Object.values(data.applications);
+                    }
+
                     // Sync back to localStorage
                     localStorage.setItem('seekerName', profileData.name);
                     localStorage.setItem('seekerEmail', profileData.email);
@@ -72,9 +81,16 @@
                     localStorage.setItem('seekerBio', profileData.bio);
                     localStorage.setItem('seekerAvailability', profileData.availability);
                     localStorage.setItem('seekerSalary', profileData.expectedSalary);
+                    localStorage.setItem('seekerApplications', JSON.stringify(userApplications));
+                    
                     // Update UI initial
                     var initEl = document.getElementById('user-initial');
                     if (initEl) initEl.textContent = profileData.name.charAt(0).toUpperCase();
+                    
+                    // Update badge
+                    var appBadge = document.getElementById('app-count-badge');
+                    if (appBadge) appBadge.textContent = userApplications.length;
+
                     console.log('Jobseeker profile loaded from Firebase');
                 }
             }).catch(function(e) { console.error('Firebase load error:', e); });
@@ -169,15 +185,9 @@
         let allJobSeekers = [];
         let growthPostsListener = null;
 
-        // Master Job List
-        const jobList = [
-            { id: 1, title: 'Frontend React Developer', company: 'Krishi-AI', founder: 'Rahim Uddin', description: 'Build beautiful UI for our AI platform.', requiredSkills: ['React', 'Tailwind CSS'], salary: '$1,500/month', type: 'Full-time', location: 'Remote', matchScore: 95 },
-            { id: 2, title: 'Backend Node Engineer', company: 'FinSheba', founder: 'Sadia Rahman', description: 'Develop secure backend services.', requiredSkills: ['Node.js', 'AWS'], salary: '$2,000/month', type: 'Full-time', location: 'Hybrid', matchScore: 80 },
-            { id: 3, title: 'Mobile Developer', company: 'HealthBuddy', founder: 'Karim Ahmed', description: 'Create mobile apps.', requiredSkills: ['Flutter', 'Firebase'], salary: '$1,800/month', type: 'Full-time', location: 'Remote', matchScore: 20 }
-        ];
-
-        // Founders List — will be loaded from Firebase
+        // Founders List (Startups) — will be loaded from Firebase
         let foundersList = [];
+        let startupList = []; // Kept for logic compatibility
 
         // --- FETCH REAL FOUNDERS FROM FIREBASE ---
         function fetchFoundersFromFirebase() {
@@ -185,31 +195,34 @@
             return firebase.database().ref('users/founders').once('value').then(function(snap) {
                 var data = snap.val();
                 foundersList = [];
+                startupList = [];
                 if (data) {
-                    var idx = 1;
                     Object.keys(data).forEach(function(key) {
                         var f = data[key];
-                        foundersList.push({
-                            id: idx,
+                        const startupObj = {
+                            id: key, // Use firebase key as unique ID
                             firebaseKey: key,
-                            name: f.name || 'Unknown',
-                            startup: f.startupName || '',
+                            name: f.startupName || '',
+                            founder: f.name || 'Unknown',
                             industry: f.industry || 'General',
+                            stage: f.stage || 'Pre-Seed',
                             bio: f.bio || '',
                             picture: f.picture || '',
-                            description: f.ideaDescription || '',
                             problem: f.problem || '',
                             vision: f.vision || '',
                             businessPlan: f.businessPlan || '',
+                            description: f.ideaDescription || '',
                             skillsNeeded: Array.isArray(f.skillsNeeded) ? f.skillsNeeded : (f.skillsNeeded ? String(f.skillsNeeded).split(',').map(function(s){return s.trim();}) : []),
                             fundingNeeded: f.fundingNeeded || '',
-                            requirements: f.skills ? f.skills.split(',').map(function(s) { return s.trim(); }) : (Array.isArray(f.skillsNeeded) ? f.skillsNeeded : []),
                             linkedin: f.linkedin || '',
                             github: f.github || '',
                             email: f.email || '',
-                            hasIdea: !!f.startupName
-                        });
-                        idx++;
+                            hasIdea: !!f.startupName,
+                            requirements: f.skillsNeeded ? (Array.isArray(f.skillsNeeded) ? f.skillsNeeded : String(f.skillsNeeded).split(',').map(s => s.trim())) : [],
+                            matchScore: 0 // Default
+                        };
+                        foundersList.push(startupObj);
+                        if(startupObj.hasIdea) startupList.push(startupObj);
                     });
                 }
                 console.log('JobSeeker: Loaded ' + foundersList.length + ' founders from Firebase');
@@ -217,10 +230,8 @@
         }
 
         // User specific state
-        let savedJobIds = [2]; 
-        let userApplications = [
-            { id: 1, jobId: 1, appliedDate: '2026-02-28', status: 'Under Review' }
-        ];
+        let savedJobIds = []; 
+        let userApplications = [];
 
         // --- STATE MANAGEMENT FUNCTIONS ---
         function setTab(tab) {
@@ -260,6 +271,10 @@
             profileData.bio = fd.get('bio');
 
             document.getElementById('user-initial').textContent = profileData.name.charAt(0).toUpperCase();
+            
+            // Clear AI cache because profile changed
+            jobseekerAIMatchCache = null;
+            
             saveProfileToStorage();
             closeModal('basic-info-modal');
             renderContent();
@@ -276,6 +291,7 @@
                 duration: fd.get('duration'),
                 description: fd.get('description')
             });
+            jobseekerAIMatchCache = null;
             closeModal('exp-modal');
             renderContent();
         }
@@ -283,6 +299,7 @@
         function deleteExperience(id) {
             if(confirm('Are you sure you want to delete this experience?')) {
                 userExperiences = userExperiences.filter(e => e.id !== id);
+                jobseekerAIMatchCache = null;
                 renderContent();
             }
         }
@@ -316,6 +333,7 @@
             const val = input.value.trim();
             if(val && !userSkills.includes(val)) {
                 userSkills.push(val);
+                jobseekerAIMatchCache = null;
                 renderContent();
             }
             input.value = '';
@@ -323,6 +341,7 @@
 
         function removeSkill(skillToRemove) {
             userSkills = userSkills.filter(s => s !== skillToRemove);
+            jobseekerAIMatchCache = null;
             renderContent();
         }
 
@@ -352,12 +371,14 @@
             if (!input.files || !input.files[0]) return;
             var file = input.files[0];
             if (!file.type.match('image.*')) { alert('Please select an image file (JPG, PNG, etc.)'); return; }
-            window.compressImageFile(file, 800, 800, 0.8).then(function(base64) {
-                profileData.profilePic = base64;
-                localStorage.setItem('seekerProfilePic', base64);
-                updateSeekerHeaderAvatar();
-                renderContent();
-            });
+            if (typeof window.compressImageFile === 'function') {
+                window.compressImageFile(file, 800, 800, 0.8).then(function(base64) {
+                    profileData.profilePic = base64;
+                    localStorage.setItem('seekerProfilePic', base64);
+                    updateSeekerHeaderAvatar();
+                    renderContent();
+                });
+            }
         }
 
         function removeProfilePic() {
@@ -372,11 +393,13 @@
             if (!input.files || !input.files[0]) return;
             var file = input.files[0];
             if (!file.type.match('image.*')) { alert('Please select an image file (JPG, PNG, etc.)'); return; }
-            window.compressImageFile(file, 1920, 1080, 0.75).then(function(base64) {
-                profileData.coverPic = base64;
-                localStorage.setItem('seekerCoverPic', base64);
-                renderContent();
-            });
+            if (typeof window.compressImageFile === 'function') {
+                window.compressImageFile(file, 1920, 1080, 0.75).then(function(base64) {
+                    profileData.coverPic = base64;
+                    localStorage.setItem('seekerCoverPic', base64);
+                    renderContent();
+                });
+            }
         }
 
         function removeCoverPic() {
@@ -490,20 +513,6 @@
             if (!text) return '';
             return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
-        function getTimeAgo(timestamp) {
-            if (!timestamp) return '';
-            var diff = Date.now() - timestamp;
-            var mins = Math.floor(diff / 60000);
-            if (mins < 1) return 'Just now';
-            if (mins < 60) return mins + 'm ago';
-            var hours = Math.floor(mins / 60);
-            if (hours < 24) return hours + 'h ago';
-            var days = Math.floor(hours / 24);
-            if (days < 7) return days + 'd ago';
-            var weeks = Math.floor(days / 7);
-            if (weeks < 4) return weeks + 'w ago';
-            return new Date(timestamp).toLocaleDateString();
-        }
 
         // --- PROJECT CRUD ---
         function addProject(event) {
@@ -524,78 +533,6 @@
                 userProjects = userProjects.filter(function(p) { return p.id !== id; });
                 renderContent();
             }
-        }
-
-        // --- GROWTH POSTS FIREBASE ---
-        function fetchGrowthPosts() {
-            if (typeof firebase === 'undefined' || !firebase.database) return;
-            if (growthPostsListener) firebase.database().ref('growth_posts').off('value', growthPostsListener);
-            growthPostsListener = firebase.database().ref('growth_posts').orderByChild('timestamp').on('value', function(snap) {
-                growthPosts = [];
-                var data = snap.val();
-                if (data) {
-                    Object.keys(data).forEach(function(key) {
-                        var post = data[key];
-                        post._key = key;
-                        growthPosts.push(post);
-                    });
-                    growthPosts.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
-                }
-                if (currentTab === 'growth') renderContent();
-            });
-        }
-        function createGrowthPost(event) {
-            event.preventDefault();
-            if (typeof firebase === 'undefined' || !firebase.database) { alert('Firebase not available'); return; }
-            var content = document.getElementById('growth-content').value.trim();
-            var category = document.getElementById('growth-category').value;
-            if (!content) return;
-            var safeKey = profileData.email.replace(/[.#$\[\]]/g, '_');
-            var postData = {
-                authorEmail: profileData.email,
-                authorKey: safeKey,
-                authorName: profileData.name || 'Anonymous',
-                authorTitle: profileData.title || '',
-                authorPic: profileData.profilePic || '',
-                content: content,
-                category: category,
-                timestamp: Date.now(),
-                reactions: {},
-                comments: {}
-            };
-            firebase.database().ref('growth_posts').push(postData)
-                .then(function() { document.getElementById('growth-content').value = ''; })
-                .catch(function(e) { console.error('Error creating growth post:', e); alert('Failed to create post.'); });
-        }
-        function toggleReaction(postKey, reactionType) {
-            if (typeof firebase === 'undefined' || !firebase.database) return;
-            var safeKey = profileData.email.replace(/[.#$\[\]]/g, '_');
-            var ref = firebase.database().ref('growth_posts/' + postKey + '/reactions/' + safeKey);
-            ref.once('value').then(function(snap) {
-                if (snap.val() === reactionType) { ref.remove(); } else { ref.set(reactionType); }
-            });
-        }
-        function addGrowthComment(event, postKey) {
-            event.preventDefault();
-            if (typeof firebase === 'undefined' || !firebase.database) return;
-            var input = event.target.querySelector('input[name="comment"]');
-            var text = input.value.trim();
-            if (!text) return;
-            var commentData = {
-                authorEmail: profileData.email,
-                authorKey: profileData.email.replace(/[.#$\[\]]/g, '_'),
-                authorName: profileData.name || 'Anonymous',
-                authorPic: profileData.profilePic || '',
-                text: text,
-                timestamp: Date.now()
-            };
-            firebase.database().ref('growth_posts/' + postKey + '/comments').push(commentData)
-                .then(function() { input.value = ''; })
-                .catch(function(e) { console.error('Error adding comment:', e); });
-        }
-        function deleteGrowthPost(postKey) {
-            if (!confirm('Delete this post?')) return;
-            firebase.database().ref('growth_posts/' + postKey).remove();
         }
 
         // --- BROWSE JOB SEEKERS FIREBASE ---
@@ -632,11 +569,13 @@
                 console.log('Loaded ' + allJobSeekers.length + ' job seekers');
             });
         }
+        
         function viewSeekerProfile(key) {
             var seeker = allJobSeekers.find(function(s) { return s.key === key; });
             if (!seeker) return;
-            var modalHtml = '<div id="seeker-profile-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeModal(\'seeker-profile-modal\')">' +
-                '<div class="bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">' +
+            var modalHtml = '<div id="seeker-profile-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto" onclick="if(event.target===this || event.target.id===\'seeker-wrapper\')closeModal(\'seeker-profile-modal\')">' +
+                '<div id="seeker-wrapper" class="flex min-h-full items-center justify-center py-6 w-full">' +
+                '<div class="bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-3xl flex flex-col relative">' +
                     '<div class="p-6 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-gray-800 z-10 rounded-t-2xl">' +
                         '<h2 class="text-xl font-bold text-white">' + escapeHtml(seeker.name) + '</h2>' +
                         '<button onclick="closeModal(\'seeker-profile-modal\')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>' +
@@ -663,8 +602,7 @@
                         (seeker.certificates && seeker.certificates.length > 0 ? '<div class="bg-gray-900/50 p-5 rounded-xl border border-gray-700"><h4 class="font-bold text-white mb-3 flex items-center"><i data-lucide="award" class="w-4 h-4 mr-2 text-green-400"></i>Certifications</h4><div class="space-y-3">' + seeker.certificates.map(function(c) { return '<div class="flex items-center justify-between"><div><span class="font-bold text-white text-sm">' + escapeHtml(c.name || '') + '</span><span class="text-xs text-gray-400 ml-2">' + escapeHtml(c.issuer || '') + ' &bull; ' + escapeHtml(c.year || '') + '</span></div></div>'; }).join('') + '</div></div>' : '') +
                         (window.renderUserCommunityPosts ? window.renderUserCommunityPosts(seeker.key, seeker.name) : '') +
                     '</div>' +
-                '</div>' +
-            '</div>';
+                '</div></div></div>';
             var existing = document.getElementById('seeker-profile-modal');
             if (existing) existing.remove();
             document.body.insertAdjacentHTML('beforeend', modalHtml);
@@ -687,51 +625,227 @@
         }
 
         // Modal Handlers
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function openModal(id) { 
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('hidden'); 
+        }
         function closeModal(id) {
             var el = document.getElementById(id);
-            if (el) { if (el.parentNode === document.body) { el.remove(); } else { el.classList.add('hidden'); } }
+            if (el) { if (el.parentElement === document.body) { el.remove(); } else { el.classList.add('hidden'); } }
         }
 
         // Job Logic
-        function toggleSaveJob(jobId) {
-            if(savedJobIds.includes(jobId)) {
-                savedJobIds = savedJobIds.filter(id => id !== jobId);
+        function toggleSaveJob(startupId) {
+            if(savedJobIds.includes(String(startupId))) {
+                savedJobIds = savedJobIds.filter(id => id !== String(startupId));
             } else {
-                savedJobIds.push(jobId);
+                savedJobIds.push(String(startupId));
             }
             localStorage.setItem('seekerSavedJobs', JSON.stringify(savedJobIds));
             renderContent();
         }
 
-        function applyToJob(jobId) {
-            const hasApplied = userApplications.some(app => app.jobId === jobId);
+        function applyToJob(startupId) {
+            const hasApplied = userApplications.some(app => app.jobId === String(startupId));
             if(!hasApplied) {
-                userApplications.push({
-                    id: Date.now(),
-                    jobId: jobId,
+                const appId = Date.now().toString();
+                const newApp = {
+                    id: appId,
+                    jobId: String(startupId),
                     appliedDate: new Date().toISOString().split('T')[0],
                     status: 'Under Review'
-                });
+                };
+                userApplications.push(newApp);
                 localStorage.setItem('seekerApplications', JSON.stringify(userApplications));
-                alert('Successfully applied to the job!');
+                
+                // Save Application to Firebase Global and Jobseeker node
+                if (typeof firebase !== 'undefined' && firebase.database) {
+                    var safeKey = profileData.email.replace(/[.#$\[\]]/g, '_');
+                    firebase.database().ref('users/jobseekers/' + safeKey + '/applications/' + appId).set(newApp);
+                    
+                    // Send to global applications node for founder to see
+                    firebase.database().ref('applications/' + startupId + '/' + safeKey).set({
+                        ...newApp,
+                        seekerName: profileData.name,
+                        seekerEmail: profileData.email,
+                        seekerTitle: profileData.title,
+                        seekerPic: profileData.profilePic || ''
+                    });
+                }
+                
+                alert('Successfully applied to the startup! The founder has been notified.');
                 renderContent();
             } else {
-                alert('You have already applied to this job.');
+                alert('You have already applied to this startup.');
             }
         }
 
         function withdrawApplication(appId) {
             if(confirm('Are you sure you want to withdraw this application?')) {
-                userApplications = userApplications.filter(a => a.id !== appId);
+                const appToWithdraw = userApplications.find(a => String(a.id) === String(appId));
+                userApplications = userApplications.filter(a => String(a.id) !== String(appId));
                 localStorage.setItem('seekerApplications', JSON.stringify(userApplications));
+                
+                // Remove from Firebase
+                if (appToWithdraw && typeof firebase !== 'undefined' && firebase.database) {
+                    var safeKey = profileData.email.replace(/[.#$\[\]]/g, '_');
+                    firebase.database().ref('users/jobseekers/' + safeKey + '/applications/' + appId).remove();
+                    firebase.database().ref('applications/' + appToWithdraw.jobId + '/' + safeKey).remove();
+                }
+                
                 renderContent();
             }
         }
 
-        function getJobDetails(jobId) {
-            return jobList.find(j => j.id === jobId);
+        function getJobDetails(startupId) {
+            return startupList.find(j => String(j.id) === String(startupId));
         }
+
+        // --- SKILL MATCHING LOGIC FOR JOBS (AI) ---
+        async function generateAIJobMatches() {
+            const container = document.getElementById('ai-job-container');
+            if (!container) return;
+
+            if (startupList.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400">No startup opportunities available right now.</div>';
+                return;
+            }
+
+            if (jobseekerAIMatchCache) {
+                renderMatchedJobs(jobseekerAIMatchCache);
+                return;
+            }
+
+            try {
+                const GEMINI_API_KEY = 'AIzaSyAHf2s0KF9BIeN-GqSsYydv5riqkiEz2ng';
+                const prompt = `You are an expert AI Job Matchmaker for startup roles.
+Job Seeker Profile:
+Bio: ${profileData.bio || 'General Professional'}
+Skills: ${userSkills.join(', ')}
+Experiences: ${userExperiences.map(e => e.title + ' at ' + e.company).join(', ')}
+
+Here are some open startup opportunities:
+${startupList.map((s, i) => `${i+1}. ID: "${s.id}", Startup: ${s.name}, Industry: ${s.industry}, Skills Needed: ${s.requirements.join(', ')}`).join('\n')}
+
+Score how well the job seeker fits each startup from 0-100. Provide a short 1-sentence reason. 
+Output strictly a JSON array of objects with keys: "id" (string), "score" (number), "reason" (string).`;
+
+                const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + GEMINI_API_KEY, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.3, maxOutputTokens: 1024, responseMimeType: "application/json" }
+                    })
+                });
+
+                if (!response.ok) throw new Error("API Limit");
+                const result = await response.json();
+                const text = result.candidates[0].content.parts[0].text;
+                const aiScores = JSON.parse(text);
+
+                // Map scores back to startupList
+                let matchedList = startupList.map(s => {
+                    const aiMatch = aiScores.find(a => String(a.id) === String(s.id));
+                    if (aiMatch) {
+                        return { ...s, matchScore: aiMatch.score, matchReason: aiMatch.reason };
+                    }
+                    return { ...s, matchScore: 30, matchReason: "Basic profile match" }; // fallback
+                });
+
+                matchedList.sort((a,b) => b.matchScore - a.matchScore);
+                jobseekerAIMatchCache = matchedList;
+                renderMatchedJobs(matchedList);
+
+            } catch(error) {
+                console.warn("AI Match Error - Using local fallback:", error);
+                
+                // Fallback scoring using basic string matching
+                let matchedList = startupList.map(s => {
+                    let score = 30;
+                    let matches = 0;
+                    const seekerSkillsStr = userSkills.join(' ').toLowerCase() + ' ' + (profileData.bio || '').toLowerCase();
+                    s.requirements.forEach(req => {
+                        if (seekerSkillsStr.includes(req.toLowerCase())) {
+                            score += 20;
+                            matches++;
+                        }
+                    });
+                    return { ...s, matchScore: Math.min(score, 95), matchReason: `Matched ${matches} required skills based on profile keywords.` };
+                });
+                
+                matchedList.sort((a,b) => b.matchScore - a.matchScore);
+                jobseekerAIMatchCache = matchedList;
+                renderMatchedJobs(matchedList);
+            }
+        }
+
+        function renderMatchedJobs(jobs) {
+            const container = document.getElementById('ai-job-container');
+            if (!container) return;
+
+            container.innerHTML = jobs.map(job => {
+                const isSaved = savedJobIds.includes(String(job.id));
+                const hasApplied = userApplications.some(app => app.jobId === String(job.id));
+                
+                return `
+                    <div class="bg-gray-800/40 rounded-2xl border ${job.matchScore >= 80 ? 'border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.1)]' : 'border-gray-700/50'} p-6 hover:-translate-y-1 transition-all flex flex-col h-full group relative overflow-hidden">
+                        ${job.matchScore >= 85 ? '<div class="absolute -right-10 top-5 bg-green-500 text-white text-[10px] font-bold px-10 py-1 rotate-45 shadow-lg">TOP MATCH</div>' : ''}
+                        
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-4">
+                                ${job.picture 
+                                    ? '<img src="' + job.picture + '" class="w-14 h-14 rounded-xl object-cover border border-gray-600">'
+                                    : '<div class="w-14 h-14 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center font-bold text-xl text-white border border-gray-700 shadow-inner group-hover:border-green-500/50 transition-colors">' + job.name[0] + '</div>'
+                                }
+                                <div>
+                                    <h3 class="text-lg font-bold text-white group-hover:text-green-400 transition-colors line-clamp-1">Co-founder / Core Team</h3>
+                                    <p class="text-sm text-gray-400">${job.name} <span class="text-gray-600 mx-1">•</span> <span class="text-gray-500">${job.founder}</span></p>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end shrink-0 ml-2">
+                                <span class="bg-green-500/10 text-green-400 font-bold px-2.5 py-1 rounded-lg text-sm border border-green-500/20">${job.matchScore}% Match</span>
+                            </div>
+                        </div>
+                        
+                        ${job.matchReason ? '<p class="text-xs text-green-300 mb-3 bg-green-500/10 px-3 py-2 rounded-lg border border-green-500/20"><i data-lucide="sparkles" class="w-3 h-3 inline mr-1"></i>' + job.matchReason + '</p>' : ''}
+                        
+                        <p class="text-sm text-gray-300 mb-5 line-clamp-3 flex-grow">${job.description || 'No description provided.'}</p>
+                        
+                        <div class="mb-6">
+                            <p class="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wider">Required Skills:</p>
+                            <div class="flex flex-wrap gap-2">
+                                ${job.requirements.length > 0 ? job.requirements.map(s => {
+                                    const hasSkill = userSkills.some(us => us.toLowerCase() === s.toLowerCase());
+                                    return `<span class="${hasSkill ? 'bg-green-900/40 text-green-300 border-green-500/30' : 'bg-gray-900 text-gray-400 border-gray-700'} border text-xs px-2.5 py-1 rounded-md flex items-center">
+                                        ${hasSkill ? `<i data-lucide="check" class="w-3 h-3 mr-1"></i>` : ''} ${s}
+                                    </span>`;
+                                }).join('') : '<span class="text-gray-500 text-xs italic">Not specified</span>'}
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between border-t border-gray-700/50 pt-4 mt-auto gap-4">
+                            <div class="flex flex-wrap gap-3 text-xs text-gray-400">
+                                <span class="flex items-center"><i data-lucide="briefcase" class="w-3.5 h-3.5 mr-1 text-gray-500"></i>${job.industry}</span>
+                                <span class="flex items-center"><i data-lucide="clock" class="w-3.5 h-3.5 mr-1 text-gray-500"></i>${job.stage}</span>
+                                <span class="flex items-center text-white font-medium bg-gray-700/50 px-2 py-0.5 rounded"><i data-lucide="dollar-sign" class="w-3.5 h-3.5 mr-0.5 text-green-400"></i>${job.fundingNeeded || 'Not Disclosed'}</span>
+                            </div>
+                            <div class="flex gap-2 w-full sm:w-auto">
+                                <button onclick="toggleSaveJob('${job.id}')" class="p-2 border border-gray-600 rounded-lg hover:bg-gray-700 transition text-gray-400 flex items-center justify-center shrink-0">
+                                    <i data-lucide="bookmark" class="w-5 h-5 ${isSaved ? 'fill-green-400 text-green-400' : ''}"></i>
+                                </button>
+                                ${hasApplied ? 
+                                    `<button class="bg-gray-700 text-gray-400 px-6 py-2 rounded-lg font-bold text-sm w-full sm:w-auto cursor-not-allowed">Applied</button>` : 
+                                    `<button onclick="applyToJob('${job.id}')" class="seeker-btn text-white px-6 py-2 rounded-lg font-bold text-sm w-full sm:w-auto shadow-lg">Apply Now</button>`
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
 
         // --- RENDER ROUTER ---
         function renderContent() {
@@ -764,11 +878,11 @@
                     case 'profile': content.innerHTML = renderProfile(); break;
                     case 'jobs': content.innerHTML = renderJobs(); break;
                     case 'founders': content.innerHTML = renderFounders(); break;
-                    case 'community': content.innerHTML = renderCommunity(); break;
+                    case 'community': content.innerHTML = window.renderCommunity ? window.renderCommunity() : '<p class="p-8 text-center text-gray-500">Loading community feed...</p>'; break;
                     case 'seekers': content.innerHTML = renderBrowseSeekers(); break;
                     case 'applications': content.innerHTML = renderApplications(); break;
                     case 'saved': content.innerHTML = renderSavedJobs(); break;
-                    case 'myposts': content.innerHTML = renderMyPosts(); break;
+                    case 'myposts': content.innerHTML = window.renderMyPosts ? window.renderMyPosts() : '<p class="p-8 text-center text-gray-500">Loading my posts...</p>'; break;
                 }
                 lucide.createIcons();
                 requestAnimationFrame(function() { content.style.opacity = '1'; });
@@ -800,43 +914,25 @@
                     </div>
 
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 flex flex-col items-center justify-center text-center shadow">
+                        <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 flex flex-col items-center justify-center text-center shadow cursor-pointer hover:border-green-500/50 transition-colors" onclick="setTab('applications')">
                             <i data-lucide="file-text" class="w-8 h-8 text-green-400 mb-3"></i>
                             <span class="text-3xl font-bold text-white">${userApplications.length}</span>
                             <span class="text-xs text-gray-400 uppercase mt-2">Applications</span>
                         </div>
-                        <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 flex flex-col items-center justify-center text-center shadow">
+                        <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 flex flex-col items-center justify-center text-center shadow cursor-pointer hover:border-blue-500/50 transition-colors" onclick="setTab('saved')">
                             <i data-lucide="bookmark" class="w-8 h-8 text-blue-400 mb-3"></i>
                             <span class="text-3xl font-bold text-white">${savedJobIds.length}</span>
                             <span class="text-xs text-gray-400 uppercase mt-2">Saved Jobs</span>
                         </div>
-                        <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 flex flex-col items-center justify-center text-center shadow">
+                        <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 flex flex-col items-center justify-center text-center shadow cursor-pointer hover:border-yellow-500/50 transition-colors" onclick="setTab('profile')">
                             <i data-lucide="code" class="w-8 h-8 text-yellow-400 mb-3"></i>
                             <span class="text-3xl font-bold text-white">${userSkills.length}</span>
                             <span class="text-xs text-gray-400 uppercase mt-2">Skills</span>
                         </div>
-                        <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 flex flex-col items-center justify-center text-center shadow">
+                        <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 flex flex-col items-center justify-center text-center shadow cursor-pointer hover:border-orange-500/50 transition-colors" onclick="setTab('profile')">
                             <i data-lucide="folder-git-2" class="w-8 h-8 text-orange-400 mb-3"></i>
                             <span class="text-3xl font-bold text-white">${userProjects.length}</span>
                             <span class="text-xs text-gray-400 uppercase mt-2">Projects</span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
-                        <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 flex flex-col items-center justify-center text-center shadow">
-                            <i data-lucide="award" class="w-8 h-8 text-purple-400 mb-3"></i>
-                            <span class="text-3xl font-bold text-white">${userCertificates.length}</span>
-                            <span class="text-xs text-gray-400 uppercase mt-2">Certificates</span>
-                        </div>
-                        <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 flex flex-col items-center justify-center text-center shadow">
-                            <i data-lucide="message-circle" class="w-8 h-8 text-indigo-400 mb-3"></i>
-                            <span class="text-3xl font-bold text-white">${window._communityPosts ? window._communityPosts.length : 0}</span>
-                            <span class="text-xs text-gray-400 uppercase mt-2">Community Posts</span>
-                        </div>
-                        <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 flex flex-col items-center justify-center text-center shadow">
-                            <i data-lucide="user-search" class="w-8 h-8 text-pink-400 mb-3"></i>
-                            <span class="text-3xl font-bold text-white">${allJobSeekers.length}</span>
-                            <span class="text-xs text-gray-400 uppercase mt-2">Community</span>
                         </div>
                     </div>
                 </div>
@@ -845,12 +941,26 @@
 
         // LinkedIn-style Profile
         function renderProfile() {
+            var initial = profileData.name ? profileData.name.charAt(0).toUpperCase() : 'S';
+            var profilePicHTML = profileData.profilePic 
+                ? '<img src="' + profileData.profilePic + '" alt="Profile" class="w-32 h-32 rounded-full object-cover border-4 border-gray-800 shadow-xl">'
+                : '<div class="w-32 h-32 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full border-4 border-gray-800 flex items-center justify-center text-5xl font-bold text-white shadow-xl">' + initial + '</div>';
+
+            var coverStyle = profileData.coverPic
+                ? 'background-image: url(' + profileData.coverPic + '); background-size: cover; background-position: center;'
+                : 'background: linear-gradient(135deg, #1f2937, #065f46, #1f2937);';
+
+            var socialBtns = '';
+            if (profileData.github) socialBtns += '<a href="' + profileData.github + '" target="_blank" class="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-xl text-sm font-bold transition flex items-center text-white border border-gray-600"><i data-lucide="github" class="w-4 h-4 mr-2"></i> GitHub</a>';
+            if (profileData.linkedin) socialBtns += '<a href="' + profileData.linkedin + '" target="_blank" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-bold transition flex items-center text-white"><i data-lucide="linkedin" class="w-4 h-4 mr-2"></i> LinkedIn</a>';
+            if (profileData.email) socialBtns += '<a href="mailto:' + profileData.email + '" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-xl text-sm font-bold transition flex items-center text-white shadow-lg shadow-red-500/20"><i data-lucide="mail" class="w-4 h-4 mr-2"></i> Email</a>';
+
             return `
                 <div class="max-w-4xl space-y-6 animate-fade-in relative">
                     
                     <!-- 1. Top Header Card -->
                     <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 overflow-hidden shadow-lg relative">
-                        <div class="h-48 relative group cursor-pointer" style="${profileData.coverPic ? 'background-image: url(' + profileData.coverPic + '); background-size: cover; background-position: center;' : 'background: linear-gradient(135deg, #1f2937, #065f46, #1f2937);'}" onclick="document.getElementById('cover-pic-input').click()">
+                        <div class="h-48 relative group cursor-pointer" style="${coverStyle}" onclick="document.getElementById('cover-pic-input').click()">
                             <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <div class="bg-black/60 px-4 py-2 rounded-xl flex items-center text-white text-sm font-medium">
                                     <i data-lucide="camera" class="w-5 h-5 mr-2"></i> ${profileData.coverPic ? 'Change Cover Photo' : 'Upload Cover Photo'}
@@ -861,10 +971,7 @@
                         </div>
                         <div class="px-8 pb-8 relative">
                             <div class="absolute -top-16 left-8 group cursor-pointer" onclick="document.getElementById('profile-pic-input').click()">
-                                ${profileData.profilePic 
-                                    ? '<img src="' + profileData.profilePic + '" alt="Profile" class="w-32 h-32 rounded-full object-cover border-4 border-gray-800 shadow-xl">'
-                                    : '<div class="w-32 h-32 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full border-4 border-gray-800 flex items-center justify-center text-5xl font-bold text-white shadow-xl">' + (profileData.name ? profileData.name.charAt(0).toUpperCase() : 'S') + '</div>'
-                                }
+                                ${profilePicHTML}
                                 <div class="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <i data-lucide="camera" class="w-6 h-6 text-white"></i>
                                 </div>
@@ -872,17 +979,15 @@
                             </div>
                             <div class="flex justify-end mt-4 gap-2">
                                 ${profileData.profilePic ? '<button onclick="removeProfilePic()" class="p-2 hover:bg-red-500/20 rounded-full transition text-red-400 text-xs flex items-center" title="Remove photo"><i data-lucide="trash-2" class="w-4 h-4 mr-1"></i><span class="hidden sm:inline">Remove Photo</span></button>' : ''}
-                                <button onclick="openModal('basic-info-modal')" class="p-2 hover:bg-gray-700 rounded-full transition"><i data-lucide="pencil" class="w-5 h-5 text-gray-400"></i></button>
+                                <button onclick="openModal('basic-info-modal')" class="p-2 hover:bg-gray-700 rounded-full transition text-gray-400"><i data-lucide="pencil" class="w-5 h-5"></i></button>
                             </div>
                             <div class="mt-4">
                                 <h1 class="text-2xl font-bold text-white">${profileData.name || 'Your Name'}</h1>
-                                <p class="text-gray-300 text-lg mt-1">${profileData.title || '<span class="text-gray-500 italic">Add your headline</span>'}</p>
+                                <p class="text-green-400 font-medium mt-1">${profileData.title || '<span class="text-gray-500 italic">Add your headline (e.g. Frontend Developer)</span>'}</p>
                                 <p class="text-gray-500 text-sm mt-2 flex items-center"><i data-lucide="map-pin" class="w-4 h-4 mr-1"></i> ${profileData.location || 'Add location'}</p>
                                 
                                 <div class="flex flex-wrap gap-3 mt-5">
-                                    <a href="mailto:${profileData.email}" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-bold transition flex items-center text-white"><i data-lucide="mail" class="w-4 h-4 mr-2"></i> Contact Info</a>
-                                    ${profileData.linkedin ? '<a href="' + profileData.linkedin + '" target="_blank" class="bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30 px-4 py-2 rounded-lg text-sm font-bold transition flex items-center"><i data-lucide="linkedin" class="w-4 h-4 mr-2"></i> LinkedIn</a>' : ''}
-                                    ${profileData.github ? '<a href="' + profileData.github + '" target="_blank" class="bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-bold transition flex items-center"><i data-lucide="github" class="w-4 h-4 mr-2"></i> GitHub</a>' : ''}
+                                    ${socialBtns}
                                 </div>
                             </div>
                         </div>
@@ -891,8 +996,8 @@
                     <!-- 2. About Card -->
                     <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-8 shadow-lg relative">
                         <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-xl font-bold text-white">About</h2>
-                            <button onclick="openModal('basic-info-modal')" class="p-2 hover:bg-gray-700 rounded-full transition"><i data-lucide="pencil" class="w-5 h-5 text-gray-400"></i></button>
+                            <h2 class="text-xl font-bold text-white flex items-center"><i data-lucide="user" class="w-5 h-5 text-green-400 mr-2"></i> About</h2>
+                            <button onclick="openModal('basic-info-modal')" class="p-2 hover:bg-gray-700 rounded-full transition text-gray-400"><i data-lucide="pencil" class="w-5 h-5"></i></button>
                         </div>
                         <p class="text-gray-300 text-sm leading-relaxed whitespace-pre-line">${profileData.bio || '<span class="text-gray-500 italic">Click the edit button to add your bio and tell founders about yourself.</span>'}</p>
                     </div>
@@ -900,7 +1005,7 @@
                     <!-- 3. Experience Card -->
                     <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-8 shadow-lg">
                         <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-bold text-white flex items-center">Experience</h2>
+                            <h2 class="text-xl font-bold text-white flex items-center"><i data-lucide="briefcase" class="w-5 h-5 text-blue-400 mr-2"></i> Experience</h2>
                             <button onclick="openModal('exp-modal')" class="p-2 hover:bg-gray-700 rounded-full transition text-gray-400"><i data-lucide="plus" class="w-6 h-6"></i></button>
                         </div>
                         <div class="space-y-6">
@@ -919,7 +1024,7 @@
                                             </div>
                                             <button onclick="deleteExperience(${exp.id})" class="text-gray-500 hover:text-red-400 p-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                                         </div>
-                                        <p class="text-gray-300 text-sm leading-relaxed">${exp.description}</p>
+                                        <p class="text-gray-300 text-sm leading-relaxed whitespace-pre-line">${exp.description}</p>
                                     </div>
                                 </div>
                             `).join('')}
@@ -940,7 +1045,7 @@
                                         <div class="flex-1">
                                             <h4 class="font-bold text-white text-lg">${proj.name}</h4>
                                             ${proj.tech ? '<p class="text-xs text-yellow-400/80 mt-1 font-medium">' + proj.tech + '</p>' : ''}
-                                            ${proj.description ? '<p class="text-gray-300 text-sm mt-2 leading-relaxed">' + proj.description + '</p>' : ''}
+                                            ${proj.description ? '<p class="text-gray-300 text-sm mt-2 leading-relaxed whitespace-pre-line">' + proj.description + '</p>' : ''}
                                             ${proj.url ? '<a href="' + proj.url + '" target="_blank" class="text-green-400 text-xs hover:underline mt-2 inline-flex items-center"><i data-lucide="external-link" class="w-3 h-3 mr-1"></i>View Project</a>' : ''}
                                         </div>
                                         <button onclick="deleteProject(${proj.id})" class="text-gray-500 hover:text-red-400 p-2 shrink-0"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
@@ -953,7 +1058,7 @@
                     <!-- 4. Education Card -->
                     <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-8 shadow-lg">
                         <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-bold text-white flex items-center">Education</h2>
+                            <h2 class="text-xl font-bold text-white flex items-center"><i data-lucide="graduation-cap" class="w-5 h-5 mr-2 text-purple-400"></i> Education</h2>
                             <button onclick="openModal('edu-modal')" class="p-2 hover:bg-gray-700 rounded-full transition text-gray-400"><i data-lucide="plus" class="w-6 h-6"></i></button>
                         </div>
                         <div class="space-y-6">
@@ -982,7 +1087,7 @@
                     <!-- 5. Skills Card -->
                     <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-8 shadow-lg">
                         <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-bold text-white">Skills</h2>
+                            <h2 class="text-xl font-bold text-white flex items-center"><i data-lucide="code" class="w-5 h-5 text-yellow-400 mr-2"></i> Skills</h2>
                         </div>
                         <form onsubmit="addSkill(event)" class="flex gap-3 mb-6">
                             <input type="text" id="new-skill-input" placeholder="Add a new skill (e.g. Next.js)..." required class="flex-1 px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
@@ -1001,7 +1106,7 @@
                     <!-- 6. Certificates Card -->
                     <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-8 shadow-lg">
                         <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-bold text-white">Licenses & Certifications</h2>
+                            <h2 class="text-xl font-bold text-white flex items-center"><i data-lucide="award" class="w-5 h-5 text-orange-400 mr-2"></i> Licenses & Certifications</h2>
                             <button onclick="openModal('cert-modal')" class="p-2 hover:bg-gray-700 rounded-full transition text-gray-400"><i data-lucide="plus" class="w-6 h-6"></i></button>
                         </div>
                         <div class="space-y-4">
@@ -1010,7 +1115,7 @@
                                 <div class="flex items-center justify-between border-b border-gray-700/50 pb-4 last:border-0 last:pb-0">
                                     <div>
                                         <h4 class="font-bold text-white">${cert.name}</h4>
-                                        <p class="text-sm text-gray-400 mt-1">${cert.issuer} â€¢ Issued ${cert.year}</p>
+                                        <p class="text-sm text-gray-400 mt-1">${cert.issuer} • Issued ${cert.year}</p>
                                     </div>
                                     <div class="flex items-center gap-3">
                                         <span class="text-xs font-bold text-green-400 bg-green-500/10 px-2 py-1 rounded border border-green-500/20">Verified</span>
@@ -1023,12 +1128,12 @@
 
                     <!-- 7. CV/Resume Card -->
                     <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-8 shadow-lg">
-                        <h2 class="text-xl font-bold text-white mb-2">Resume / CV</h2>
+                        <h2 class="text-xl font-bold text-white mb-2 flex items-center"><i data-lucide="file-text" class="w-5 h-5 text-green-400 mr-2"></i> Resume / CV</h2>
                         <p class="text-sm text-gray-400 mb-6">Upload your PDF resume. Founders can view and download it from your profile.</p>
                         <div class="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center bg-gray-900/50 hover:border-green-500/50 transition cursor-pointer" onclick="document.getElementById('cv-upload-input').click()">
                             ${profileData.cvBase64 || profileData.cvFileName
                                 ? '<i data-lucide="file-check" class="w-12 h-12 text-green-500 mx-auto mb-3"></i><p class="text-green-400 font-bold mb-2">' + (profileData.cvFileName || 'Resume uploaded') + '</p><span class="text-sm text-gray-400 underline">Click to upload a newer version</span>'
-                                : '<i data-lucide="file-up" class="w-12 h-12 text-gray-500 mx-auto mb-3"></i><p class="text-gray-300 font-medium mb-1">Click to Upload PDF Resume</p><span class="text-xs text-gray-500">PDF only &bull; Max size: 5MB</span>'
+                                : '<i data-lucide="file-up" class="w-12 h-12 text-gray-500 mx-auto mb-3"></i><p class="text-gray-300 font-medium mb-1">Click to Upload PDF Resume</p><span class="text-xs text-gray-500">PDF only • Max size: 5MB</span>'
                             }
                         </div>
                         <input type="file" id="cv-upload-input" accept=".pdf,application/pdf" onchange="handleCVUpload(this)" class="hidden">
@@ -1045,171 +1150,195 @@
                         </button>
                     </div>
 
-                    <!-- ================= MODALS ================== -->
+                    <!-- ================= MODALS (Fixed Overflow/Clipping) ================== -->
                     
                     <!-- Basic Info & About Modal -->
-                    <div id="basic-info-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <div class="bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                            <div class="p-6 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-gray-800 z-10">
-                                <h2 class="text-xl font-bold text-white">Edit Intro & About</h2>
-                                <button onclick="closeModal('basic-info-modal')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+                    <div id="basic-info-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] overflow-y-auto" onclick="if(event.target===this || event.target.id==='edit-profile-wrapper')closeModal('basic-info-modal')">
+                        <div id="edit-profile-wrapper" class="flex min-h-full items-center justify-center p-4 sm:p-6">
+                            <div class="bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-2xl flex flex-col animate-fade-in relative">
+                                <div class="p-6 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-gray-800 rounded-t-2xl z-10">
+                                    <h2 class="text-xl font-bold text-white">Edit Intro & About</h2>
+                                    <button type="button" onclick="closeModal('basic-info-modal')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+                                </div>
+                                <div class="p-6">
+                                    <form onsubmit="saveProfileInfo(event)" class="space-y-5">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Full Name *</label>
+                                            <input type="text" name="name" value="${escapeHtml(profileData.name)}" required class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Headline (Title) *</label>
+                                            <input type="text" name="title" value="${escapeHtml(profileData.title)}" required class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Location *</label>
+                                            <input type="text" name="location" value="${escapeHtml(profileData.location)}" required class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-400 mb-1">Email Address</label>
+                                                <input type="email" name="email" value="${escapeHtml(profileData.email)}" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-400 mb-1">LinkedIn URL</label>
+                                                <input type="url" name="linkedin" value="${escapeHtml(profileData.linkedin)}" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">GitHub URL</label>
+                                            <input type="url" name="github" value="${escapeHtml(profileData.github)}" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">About / Bio *</label>
+                                            <textarea name="bio" rows="4" required class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">${escapeHtml(profileData.bio)}</textarea>
+                                        </div>
+                                        <div class="pt-4 flex gap-3 mt-4 border-t border-gray-700/50 pt-6">
+                                            <button type="button" onclick="closeModal('basic-info-modal')" class="px-6 py-3 border border-gray-600 rounded-xl font-medium hover:bg-gray-700 transition text-white w-1/3">Cancel</button>
+                                            <button type="submit" class="seeker-btn text-white px-6 py-3 rounded-xl font-bold flex-1">Save Profile</button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
-                            <form onsubmit="saveProfileInfo(event)" class="p-6 space-y-5">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Full Name *</label>
-                                    <input type="text" name="name" value="${profileData.name}" required class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Headline (Title) *</label>
-                                    <input type="text" name="title" value="${profileData.title}" required class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Location *</label>
-                                    <input type="text" name="location" value="${profileData.location}" required class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
-                                </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-400 mb-1">Email Address</label>
-                                        <input type="email" name="email" value="${profileData.email}" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-400 mb-1">LinkedIn URL</label>
-                                        <input type="url" name="linkedin" value="${profileData.linkedin}" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white">
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">GitHub URL</label>
-                                    <input type="url" name="github" value="${profileData.github}" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">About / Bio *</label>
-                                    <textarea name="bio" rows="4" required class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">${profileData.bio}</textarea>
-                                </div>
-                                <div class="pt-4 flex gap-3">
-                                    <button type="button" onclick="closeModal('basic-info-modal')" class="px-6 py-3 border border-gray-600 rounded-xl font-medium hover:bg-gray-700 transition">Cancel</button>
-                                    <button type="submit" class="seeker-btn text-white px-6 py-3 rounded-xl font-bold flex-1">Save Profile</button>
-                                </div>
-                            </form>
                         </div>
                     </div>
 
                     <!-- Add Experience Modal -->
-                    <div id="exp-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <div class="bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-lg overflow-hidden">
-                            <div class="p-6 border-b border-gray-700 flex justify-between items-center">
-                                <h2 class="text-xl font-bold text-white">Add Experience</h2>
-                                <button onclick="closeModal('exp-modal')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+                    <div id="exp-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] overflow-y-auto" onclick="if(event.target===this || event.target.id==='exp-wrapper')closeModal('exp-modal')">
+                        <div id="exp-wrapper" class="flex min-h-full items-center justify-center p-4 sm:p-6">
+                            <div class="bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-lg flex flex-col animate-fade-in relative">
+                                <div class="p-6 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-gray-800 rounded-t-2xl z-10">
+                                    <h2 class="text-xl font-bold text-white">Add Experience</h2>
+                                    <button type="button" onclick="closeModal('exp-modal')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+                                </div>
+                                <div class="p-6">
+                                    <form onsubmit="addExperience(event)" class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Title *</label>
+                                            <input type="text" name="title" required placeholder="Ex: Software Engineer" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Company name *</label>
+                                            <input type="text" name="company" required placeholder="Ex: Google" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Duration *</label>
+                                            <input type="text" name="duration" required placeholder="Ex: Jan 2022 - Present" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Description</label>
+                                            <textarea name="description" rows="3" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white"></textarea>
+                                        </div>
+                                        <div class="pt-4 flex gap-3 mt-4 border-t border-gray-700/50 pt-6">
+                                            <button type="button" onclick="closeModal('exp-modal')" class="px-6 py-3 border border-gray-600 rounded-xl font-medium hover:bg-gray-700 transition text-white w-1/3">Cancel</button>
+                                            <button type="submit" class="seeker-btn text-white px-4 py-3 rounded-xl font-bold flex-1">Save Experience</button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
-                            <form onsubmit="addExperience(event)" class="p-6 space-y-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Title *</label>
-                                    <input type="text" name="title" required placeholder="Ex: Software Engineer" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Company name *</label>
-                                    <input type="text" name="company" required placeholder="Ex: Google" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Duration *</label>
-                                    <input type="text" name="duration" required placeholder="Ex: Jan 2022 - Present" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Description</label>
-                                    <textarea name="description" rows="3" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white"></textarea>
-                                </div>
-                                <div class="pt-4 flex gap-3">
-                                    <button type="submit" class="seeker-btn text-white px-4 py-3 rounded-xl font-bold flex-1">Save Experience</button>
-                                </div>
-                            </form>
                         </div>
                     </div>
 
                     <!-- Add Education Modal -->
-                    <div id="edu-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <div class="bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-lg overflow-hidden">
-                            <div class="p-6 border-b border-gray-700 flex justify-between items-center">
-                                <h2 class="text-xl font-bold text-white">Add Education</h2>
-                                <button onclick="closeModal('edu-modal')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+                    <div id="edu-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] overflow-y-auto" onclick="if(event.target===this || event.target.id==='edu-wrapper')closeModal('edu-modal')">
+                        <div id="edu-wrapper" class="flex min-h-full items-center justify-center p-4 sm:p-6">
+                            <div class="bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-lg flex flex-col animate-fade-in relative">
+                                <div class="p-6 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-gray-800 rounded-t-2xl z-10">
+                                    <h2 class="text-xl font-bold text-white">Add Education</h2>
+                                    <button type="button" onclick="closeModal('edu-modal')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+                                </div>
+                                <div class="p-6">
+                                    <form onsubmit="addEducation(event)" class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">School / University *</label>
+                                            <input type="text" name="school" required placeholder="Ex: Dhaka University" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Degree *</label>
+                                            <input type="text" name="degree" required placeholder="Ex: BSc in Computer Science" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Duration *</label>
+                                            <input type="text" name="duration" required placeholder="Ex: 2018 - 2022" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Activities / Description</label>
+                                            <textarea name="description" rows="2" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white"></textarea>
+                                        </div>
+                                        <div class="pt-4 flex gap-3 mt-4 border-t border-gray-700/50 pt-6">
+                                            <button type="button" onclick="closeModal('edu-modal')" class="px-6 py-3 border border-gray-600 rounded-xl font-medium hover:bg-gray-700 transition text-white w-1/3">Cancel</button>
+                                            <button type="submit" class="seeker-btn text-white px-4 py-3 rounded-xl font-bold flex-1">Save Education</button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
-                            <form onsubmit="addEducation(event)" class="p-6 space-y-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">School / University *</label>
-                                    <input type="text" name="school" required placeholder="Ex: Dhaka University" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Degree *</label>
-                                    <input type="text" name="degree" required placeholder="Ex: BSc in Computer Science" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Duration *</label>
-                                    <input type="text" name="duration" required placeholder="Ex: 2018 - 2022" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Activities / Description</label>
-                                    <textarea name="description" rows="2" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white"></textarea>
-                                </div>
-                                <div class="pt-4 flex gap-3">
-                                    <button type="submit" class="seeker-btn text-white px-4 py-3 rounded-xl font-bold flex-1">Save Education</button>
-                                </div>
-                            </form>
                         </div>
                     </div>
 
                     <!-- Add Certificate Modal -->
-                    <div id="cert-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <div class="bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-lg overflow-hidden">
-                            <div class="p-6 border-b border-gray-700 flex justify-between items-center">
-                                <h2 class="text-xl font-bold text-white">Add Certification</h2>
-                                <button onclick="closeModal('cert-modal')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+                    <div id="cert-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] overflow-y-auto" onclick="if(event.target===this || event.target.id==='cert-wrapper')closeModal('cert-modal')">
+                        <div id="cert-wrapper" class="flex min-h-full items-center justify-center p-4 sm:p-6">
+                            <div class="bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-lg flex flex-col animate-fade-in relative">
+                                <div class="p-6 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-gray-800 rounded-t-2xl z-10">
+                                    <h2 class="text-xl font-bold text-white">Add Certification</h2>
+                                    <button type="button" onclick="closeModal('cert-modal')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+                                </div>
+                                <div class="p-6">
+                                    <form onsubmit="addCertificate(event)" class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Name *</label>
+                                            <input type="text" name="name" required class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Issuing Organization *</label>
+                                            <input type="text" name="issuer" required class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Issue Year *</label>
+                                            <input type="text" name="year" required placeholder="Ex: 2024" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white">
+                                        </div>
+                                        <div class="pt-4 flex gap-3 mt-4 border-t border-gray-700/50 pt-6">
+                                            <button type="button" onclick="closeModal('cert-modal')" class="px-6 py-3 border border-gray-600 rounded-xl font-medium hover:bg-gray-700 transition text-white w-1/3">Cancel</button>
+                                            <button type="submit" class="seeker-btn text-white px-4 py-3 rounded-xl font-bold flex-1">Save Certificate</button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
-                            <form onsubmit="addCertificate(event)" class="p-6 space-y-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Name *</label>
-                                    <input type="text" name="name" required class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Issuing Organization *</label>
-                                    <input type="text" name="issuer" required class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Issue Year *</label>
-                                    <input type="text" name="year" required placeholder="Ex: 2024" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white">
-                                </div>
-                                <div class="pt-4 flex gap-3">
-                                    <button type="submit" class="seeker-btn text-white px-4 py-3 rounded-xl font-bold flex-1">Save Certificate</button>
-                                </div>
-                            </form>
                         </div>
                     </div>
 
                     <!-- Add Project Modal -->
-                    <div id="project-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <div class="bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-lg overflow-hidden">
-                            <div class="p-6 border-b border-gray-700 flex justify-between items-center">
-                                <h2 class="text-xl font-bold text-white">Add Project</h2>
-                                <button onclick="closeModal('project-modal')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+                    <div id="project-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] overflow-y-auto" onclick="if(event.target===this || event.target.id==='project-wrapper')closeModal('project-modal')">
+                        <div id="project-wrapper" class="flex min-h-full items-center justify-center p-4 sm:p-6">
+                            <div class="bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-lg flex flex-col animate-fade-in relative">
+                                <div class="p-6 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-gray-800 rounded-t-2xl z-10">
+                                    <h2 class="text-xl font-bold text-white">Add Project</h2>
+                                    <button type="button" onclick="closeModal('project-modal')" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+                                </div>
+                                <div class="p-6">
+                                    <form onsubmit="addProject(event)" class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Project Name *</label>
+                                            <input type="text" name="name" required placeholder="Ex: E-commerce Platform" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-yellow-500 outline-none text-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Technologies Used</label>
+                                            <input type="text" name="tech" placeholder="Ex: React, Node.js, MongoDB" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-yellow-500 outline-none text-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Project URL</label>
+                                            <input type="url" name="url" placeholder="https://github.com/..." class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-1">Description</label>
+                                            <textarea name="description" rows="3" placeholder="What does this project do? What did you learn?" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-yellow-500 outline-none text-white"></textarea>
+                                        </div>
+                                        <div class="pt-4 flex gap-3 mt-4 border-t border-gray-700/50 pt-6">
+                                            <button type="button" onclick="closeModal('project-modal')" class="px-6 py-3 border border-gray-600 rounded-xl font-medium hover:bg-gray-700 transition text-white w-1/3">Cancel</button>
+                                            <button type="submit" class="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white px-4 py-3 rounded-xl font-bold flex-1 transition-all">Save Project</button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
-                            <form onsubmit="addProject(event)" class="p-6 space-y-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Project Name *</label>
-                                    <input type="text" name="name" required placeholder="Ex: E-commerce Platform" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-yellow-500 outline-none text-white">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Technologies Used</label>
-                                    <input type="text" name="tech" placeholder="Ex: React, Node.js, MongoDB" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-yellow-500 outline-none text-white">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Project URL</label>
-                                    <input type="url" name="url" placeholder="https://github.com/..." class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Description</label>
-                                    <textarea name="description" rows="3" placeholder="What does this project do? What did you learn?" class="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-yellow-500 outline-none text-white"></textarea>
-                                </div>
-                                <div class="pt-4 flex gap-3">
-                                    <button type="submit" class="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white px-4 py-3 rounded-xl font-bold flex-1 transition-all">Save Project</button>
-                                </div>
-                            </form>
                         </div>
                     </div>
 
@@ -1277,9 +1406,7 @@
                                         ${founder.skillsNeeded.length > 0 ? '<div class="bg-gray-900/50 rounded-xl p-4 border border-gray-700"><p class="text-xs text-gray-400 mb-2 font-bold uppercase tracking-wider">Skills Needed:</p><div class="flex flex-wrap gap-2">' + founder.skillsNeeded.map(function(s){ return '<span class="bg-blue-500/15 text-blue-300 text-xs px-2.5 py-1 rounded-lg border border-blue-500/30">' + s + '</span>'; }).join('') + '</div></div>' : ''}
 
                                         <div class="flex gap-3 flex-wrap">
-                                            <button onclick="viewCommunityProfile('${founder.firebaseKey}','Founder')" class="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white py-2.5 rounded-xl font-bold text-sm shadow-lg text-center transition-all flex items-center justify-center gap-1.5"><i data-lucide="eye" class="w-4 h-4"></i> View Profile</button>
-                                            ${founder.email ? '<a href="mailto:' + founder.email + '" class="flex-1 seeker-btn text-white py-2.5 rounded-xl font-bold text-sm shadow-lg text-center">Contact</a>' : ''}
-                                            ${founder.linkedin ? '<a href="' + founder.linkedin + '" target="_blank" class="border border-gray-600 hover:bg-gray-700 text-gray-300 py-2.5 px-4 rounded-xl font-bold text-sm text-center transition flex items-center justify-center"><i data-lucide="linkedin" class="w-4 h-4"></i></a>' : ''}
+                                            ${typeof window.viewCommunityProfile !== 'undefined' ? `<button onclick="viewCommunityProfile('${founder.firebaseKey}','Founder')" class="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white py-2.5 rounded-xl font-bold text-sm shadow-lg text-center transition-all flex items-center justify-center gap-1.5"><i data-lucide="eye" class="w-4 h-4"></i> View Profile</button>` : ''}
                                         </div>
                                     </div>
 
@@ -1298,97 +1425,6 @@
                     </div>
                 </div>
             `;
-        }
-
-        // --- SHARE YOUR GROWTH FEED ---
-        function renderGrowth() {
-            var myKey = profileData.email ? profileData.email.replace(/[.#$\[\]]/g, '_') : '';
-            var postsHtml = '';
-            if (growthPosts.length === 0) {
-                postsHtml = '<div class="text-center py-16 bg-gray-800/40 rounded-2xl border border-gray-700/50"><i data-lucide="trending-up" class="w-16 h-16 text-gray-600 mx-auto mb-4"></i><h3 class="text-xl font-bold text-white mb-2">No Growth Posts Yet</h3><p class="text-gray-400">Be the first to share your achievement or learning!</p></div>';
-            } else {
-                postsHtml = growthPosts.map(function(post) {
-                    var timeAgo = getTimeAgo(post.timestamp);
-                    var catEmojis = {achievement:'\u{1F3C6}',skill:'\u{1F4A1}',project:'\u{1F680}',learning:'\u{1F4DA}',certification:'\u{1F4DC}',general:'\u{1F4AC}'};
-                    var catLabels = {achievement:'Achievement',skill:'New Skill',project:'Project',learning:'Learning',certification:'Certification',general:'General'};
-                    var emoji = catEmojis[post.category] || '\u{1F4AC}';
-                    var label = catLabels[post.category] || 'Post';
-                    var reactions = post.reactions || {};
-                    var likeCount = 0, celebrateCount = 0, insightfulCount = 0;
-                    var myReaction = reactions[myKey] || null;
-                    Object.values(reactions).forEach(function(r) {
-                        if (r === 'like') likeCount++;
-                        if (r === 'celebrate') celebrateCount++;
-                        if (r === 'insightful') insightfulCount++;
-                    });
-                    var totalReactions = likeCount + celebrateCount + insightfulCount;
-                    var comments = post.comments ? Object.keys(post.comments).map(function(k) { var c = post.comments[k]; c._key = k; return c; }).sort(function(a,b) { return (a.timestamp||0) - (b.timestamp||0); }) : [];
-                    var isMyPost = post.authorKey === myKey;
-                    var html = '<div class="bg-gray-800/60 rounded-2xl border border-gray-700/50 shadow-lg overflow-hidden growth-post-card">' +
-                        '<div class="p-6">' +
-                            '<div class="flex items-start justify-between mb-4">' +
-                                '<div class="flex items-center gap-3">' +
-                                    (post.authorPic ? '<img src="' + post.authorPic + '" class="w-11 h-11 rounded-full object-cover border-2 border-gray-700">' : '<div class="w-11 h-11 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-sm font-bold text-white">' + (post.authorName ? post.authorName.charAt(0).toUpperCase() : '?') + '</div>') +
-                                    '<div>' +
-                                        '<h4 class="font-bold text-white text-sm">' + escapeHtml(post.authorName || 'Anonymous') + '</h4>' +
-                                        '<p class="text-xs text-gray-400">' + escapeHtml(post.authorTitle || 'Job Seeker') + ' &bull; ' + timeAgo + '</p>' +
-                                    '</div>' +
-                                '</div>' +
-                                '<div class="flex items-center gap-2">' +
-                                    '<span class="text-xs bg-gray-700/80 px-2.5 py-1 rounded-full text-gray-300">' + emoji + ' ' + label + '</span>' +
-                                    (isMyPost ? '<button onclick="deleteGrowthPost(\'' + post._key + '\')" class="text-gray-500 hover:text-red-400 p-1 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>' : '') +
-                                '</div>' +
-                            '</div>' +
-                            '<p class="text-gray-200 text-sm leading-relaxed whitespace-pre-line mb-4">' + escapeHtml(post.content) + '</p>' +
-                            (totalReactions > 0 ? '<div class="flex items-center gap-2 text-xs text-gray-400 mb-3 pb-3 border-b border-gray-700/50">' + (likeCount > 0 ? '<span>\u{1F44D} ' + likeCount + '</span>' : '') + (celebrateCount > 0 ? '<span>\u{1F389} ' + celebrateCount + '</span>' : '') + (insightfulCount > 0 ? '<span>\u{1F9E0} ' + insightfulCount + '</span>' : '') + '</div>' : '') +
-                            '<div class="flex items-center gap-1 mb-4 pb-4 border-b border-gray-700/50">' +
-                                '<button onclick="toggleReaction(\'' + post._key + '\', \'like\')" class="reaction-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ' + (myReaction === 'like' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'hover:bg-gray-700/80 text-gray-400 border border-transparent') + '">\u{1F44D} Like</button>' +
-                                '<button onclick="toggleReaction(\'' + post._key + '\', \'celebrate\')" class="reaction-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ' + (myReaction === 'celebrate' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'hover:bg-gray-700/80 text-gray-400 border border-transparent') + '">\u{1F389} Celebrate</button>' +
-                                '<button onclick="toggleReaction(\'' + post._key + '\', \'insightful\')" class="reaction-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ' + (myReaction === 'insightful' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'hover:bg-gray-700/80 text-gray-400 border border-transparent') + '">\u{1F9E0} Insightful</button>' +
-                            '</div>' +
-                            (comments.length > 0 ? '<div class="space-y-3 mb-4">' + comments.map(function(c) {
-                                return '<div class="flex items-start gap-2.5">' +
-                                    (c.authorPic ? '<img src="' + c.authorPic + '" class="w-8 h-8 rounded-full object-cover mt-0.5">' : '<div class="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-xs font-bold text-gray-300 mt-0.5 shrink-0">' + (c.authorName ? c.authorName.charAt(0).toUpperCase() : '?') + '</div>') +
-                                    '<div class="bg-gray-900/60 px-3 py-2 rounded-xl flex-1">' +
-                                        '<span class="text-xs font-bold text-white">' + escapeHtml(c.authorName || 'Anonymous') + '</span>' +
-                                        '<span class="text-xs text-gray-500 ml-2">' + getTimeAgo(c.timestamp) + '</span>' +
-                                        '<p class="text-xs text-gray-300 mt-0.5">' + escapeHtml(c.text) + '</p>' +
-                                    '</div></div>';
-                            }).join('') + '</div>' : '') +
-                            '<form onsubmit="addGrowthComment(event, \'' + post._key + '\')" class="flex items-center gap-2">' +
-                                (profileData.profilePic ? '<img src="' + profileData.profilePic + '" class="w-8 h-8 rounded-full object-cover shrink-0">' : '<div class="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0">' + (profileData.name ? profileData.name.charAt(0).toUpperCase() : '?') + '</div>') +
-                                '<input type="text" name="comment" placeholder="Write a comment..." class="flex-1 px-3 py-2 bg-gray-900/80 border border-gray-600 rounded-xl text-xs text-white outline-none focus:ring-1 focus:ring-orange-500 placeholder-gray-500">' +
-                                '<button type="submit" class="text-orange-400 hover:text-orange-300 p-1.5 transition"><i data-lucide="send" class="w-4 h-4"></i></button>' +
-                            '</form>' +
-                        '</div></div>';
-                    return html;
-                }).join('');
-            }
-
-            return '<div class="max-w-3xl mx-auto space-y-6">' +
-                '<div class="bg-gray-800/60 rounded-2xl border border-gray-700/50 p-6 shadow-lg">' +
-                    '<div class="flex items-start gap-4">' +
-                        '<div class="shrink-0">' +
-                            (profileData.profilePic ? '<img src="' + profileData.profilePic + '" class="w-12 h-12 rounded-full object-cover border-2 border-gray-700">' : '<div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-lg font-bold text-white">' + (profileData.name ? profileData.name.charAt(0).toUpperCase() : '?') + '</div>') +
-                        '</div>' +
-                        '<form onsubmit="createGrowthPost(event)" class="flex-1 space-y-4">' +
-                            '<textarea id="growth-content" rows="3" required placeholder="Share your achievement, new skill, project, or anything you\'ve learned..." class="w-full px-4 py-3 bg-gray-900/80 border border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-white resize-none placeholder-gray-500"></textarea>' +
-                            '<div class="flex items-center justify-between flex-wrap gap-3">' +
-                                '<select id="growth-category" class="px-4 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white outline-none focus:ring-2 focus:ring-orange-500">' +
-                                    '<option value="achievement">\u{1F3C6} Achievement</option>' +
-                                    '<option value="skill">\u{1F4A1} New Skill</option>' +
-                                    '<option value="project">\u{1F680} Project</option>' +
-                                    '<option value="learning">\u{1F4DA} Learning</option>' +
-                                    '<option value="certification">\u{1F4DC} Certification</option>' +
-                                    '<option value="general">\u{1F4AC} General</option>' +
-                                '</select>' +
-                                '<button type="submit" class="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all hover:shadow-lg hover:shadow-orange-500/25 flex items-center gap-2"><i data-lucide="send" class="w-4 h-4"></i> Post</button>' +
-                            '</div>' +
-                        '</form>' +
-                    '</div>' +
-                '</div>' +
-                postsHtml +
-            '</div>';
         }
 
         // --- BROWSE JOB SEEKERS VIEW ---
@@ -1433,50 +1469,161 @@
             '</div>';
         }
 
+        // --- GEMINI AI MATCHING LOGIC FOR JOBS ---
+        async function generateAIJobMatches() {
+            const container = document.getElementById('ai-job-container');
+            if (!container) return;
+
+            if (startupList.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400">No startup opportunities available right now.</div>';
+                return;
+            }
+
+            if (jobseekerAIMatchCache) {
+                renderMatchedJobs(jobseekerAIMatchCache);
+                return;
+            }
+
+            try {
+                const GEMINI_API_KEY = 'AIzaSyAHf2s0KF9BIeN-GqSsYydv5riqkiEz2ng';
+                const prompt = `You are an expert AI Job Matchmaker for startup roles.
+Job Seeker Profile:
+Bio: ${profileData.bio || 'General Professional'}
+Skills: ${userSkills.join(', ')}
+Experiences: ${userExperiences.map(e => e.title + ' at ' + e.company).join(', ')}
+
+Here are some open startup opportunities:
+${startupList.map((s, i) => `${i+1}. ID: "${s.id}", Startup: ${s.name}, Industry: ${s.industry}, Skills Needed: ${s.requirements.join(', ')}`).join('\n')}
+
+Score how well the job seeker fits each startup from 0-100. Provide a short 1-sentence reason. 
+Output strictly a JSON array of objects with keys: "id" (string), "score" (number), "reason" (string).`;
+
+                const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + GEMINI_API_KEY, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.3, maxOutputTokens: 1024, responseMimeType: "application/json" }
+                    })
+                });
+
+                if (!response.ok) throw new Error("API Limit");
+                const result = await response.json();
+                const text = result.candidates[0].content.parts[0].text;
+                const aiScores = JSON.parse(text);
+
+                // Map scores back to startupList
+                let matchedList = startupList.map(s => {
+                    const aiMatch = aiScores.find(a => String(a.id) === String(s.id));
+                    if (aiMatch) {
+                        return { ...s, matchScore: aiMatch.score, matchReason: aiMatch.reason };
+                    }
+                    return { ...s, matchScore: 30, matchReason: "Basic profile match" }; // fallback
+                });
+
+                matchedList.sort((a,b) => b.matchScore - a.matchScore);
+                jobseekerAIMatchCache = matchedList;
+                renderMatchedJobs(matchedList);
+
+            } catch(error) {
+                console.warn("AI Match Error - Using local fallback:", error);
+                
+                // Fallback scoring using basic string matching
+                let matchedList = startupList.map(s => {
+                    let score = 30;
+                    let matches = 0;
+                    const seekerSkillsStr = userSkills.join(' ').toLowerCase() + ' ' + (profileData.bio || '').toLowerCase();
+                    s.requirements.forEach(req => {
+                        if (seekerSkillsStr.includes(req.toLowerCase())) {
+                            score += 20;
+                            matches++;
+                        }
+                    });
+                    return { ...s, matchScore: Math.min(score, 95), matchReason: `Matched ${matches} required skills based on profile keywords.` };
+                });
+                
+                matchedList.sort((a,b) => b.matchScore - a.matchScore);
+                jobseekerAIMatchCache = matchedList;
+                renderMatchedJobs(matchedList);
+            }
+        }
+
+        function renderMatchedJobs(jobs) {
+            const container = document.getElementById('ai-job-container');
+            if (!container) return;
+
+            container.innerHTML = jobs.map(job => {
+                const isSaved = savedJobIds.includes(String(job.id));
+                const hasApplied = userApplications.some(app => app.jobId === String(job.id));
+                
+                return `
+                    <div class="bg-gray-800/40 rounded-2xl border ${job.matchScore >= 80 ? 'border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.1)]' : 'border-gray-700/50'} p-6 hover:-translate-y-1 transition-all flex flex-col h-full group relative overflow-hidden">
+                        ${job.matchScore >= 85 ? '<div class="absolute -right-10 top-5 bg-green-500 text-white text-[10px] font-bold px-10 py-1 rotate-45 shadow-lg">TOP MATCH</div>' : ''}
+                        
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-4">
+                                ${job.picture 
+                                    ? '<img src="' + job.picture + '" class="w-14 h-14 rounded-xl object-cover border border-gray-600">'
+                                    : '<div class="w-14 h-14 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center font-bold text-xl text-white border border-gray-700 shadow-inner group-hover:border-green-500/50 transition-colors">' + job.name[0] + '</div>'
+                                }
+                                <div>
+                                    <h3 class="text-lg font-bold text-white group-hover:text-green-400 transition-colors line-clamp-1">Co-founder / Core Team</h3>
+                                    <p class="text-sm text-gray-400">${job.name} <span class="text-gray-600 mx-1">•</span> <span class="text-gray-500">${job.founder}</span></p>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end shrink-0 ml-2">
+                                <span class="bg-green-500/10 text-green-400 font-bold px-2.5 py-1 rounded-lg text-sm border border-green-500/20">${job.matchScore}% Match</span>
+                            </div>
+                        </div>
+                        
+                        ${job.matchReason ? '<p class="text-xs text-green-300 mb-3 bg-green-500/10 px-3 py-2 rounded-lg border border-green-500/20"><i data-lucide="sparkles" class="w-3 h-3 inline mr-1"></i>' + job.matchReason + '</p>' : ''}
+                        
+                        <p class="text-sm text-gray-300 mb-5 line-clamp-3 flex-grow">${job.description || 'No description provided.'}</p>
+                        
+                        <div class="mb-6">
+                            <p class="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wider">Required Skills:</p>
+                            <div class="flex flex-wrap gap-2">
+                                ${job.requirements.length > 0 ? job.requirements.map(s => {
+                                    const hasSkill = userSkills.some(us => us.toLowerCase() === s.toLowerCase());
+                                    return `<span class="${hasSkill ? 'bg-green-900/40 text-green-300 border-green-500/30' : 'bg-gray-900 text-gray-400 border-gray-700'} border text-xs px-2.5 py-1 rounded-md flex items-center">
+                                        ${hasSkill ? `<i data-lucide="check" class="w-3 h-3 mr-1"></i>` : ''} ${s}
+                                    </span>`;
+                                }).join('') : '<span class="text-gray-500 text-xs italic">Not specified</span>'}
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between border-t border-gray-700/50 pt-4 mt-auto gap-4">
+                            <div class="flex flex-wrap gap-3 text-xs text-gray-400">
+                                <span class="flex items-center"><i data-lucide="briefcase" class="w-3.5 h-3.5 mr-1 text-gray-500"></i>${job.industry}</span>
+                                <span class="flex items-center"><i data-lucide="clock" class="w-3.5 h-3.5 mr-1 text-gray-500"></i>${job.stage}</span>
+                                <span class="flex items-center text-white font-medium bg-gray-700/50 px-2 py-0.5 rounded"><i data-lucide="dollar-sign" class="w-3.5 h-3.5 mr-0.5 text-green-400"></i>${job.fundingNeeded || 'Not Disclosed'}</span>
+                            </div>
+                            <div class="flex gap-2 w-full sm:w-auto">
+                                <button onclick="toggleSaveJob('${job.id}')" class="p-2 border border-gray-600 rounded-lg hover:bg-gray-700 transition text-gray-400 flex items-center justify-center shrink-0">
+                                    <i data-lucide="bookmark" class="w-5 h-5 ${isSaved ? 'fill-green-400 text-green-400' : ''}"></i>
+                                </button>
+                                ${hasApplied ? 
+                                    `<button class="bg-gray-700 text-gray-400 px-6 py-2 rounded-lg font-bold text-sm w-full sm:w-auto cursor-not-allowed">Applied</button>` : 
+                                    `<button onclick="applyToJob('${job.id}')" class="seeker-btn text-white px-6 py-2 rounded-lg font-bold text-sm w-full sm:w-auto shadow-lg">Apply Now</button>`
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
         function renderJobs() {
-            const sortedJobs = [...jobList].sort((a,b) => b.matchScore - a.matchScore);
+            setTimeout(generateAIJobMatches, 100);
 
             return `
                 <div class="space-y-6">
-                    <!-- Search and Filter Section -->
-                    <div class="bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 shadow-lg">
-                        <div class="flex flex-col md:flex-row gap-4 mb-4">
-                            <div class="flex-1 relative">
-                                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
-                                <input type="text" placeholder="Search by job title, keyword, or company..." class="w-full pl-12 pr-4 py-3 bg-gray-900 border border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-white">
-                            </div>
-                            <button class="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-xl font-bold transition flex items-center justify-center md:w-auto w-full border border-gray-600">
-                                <i data-lucide="filter" class="w-5 h-5 mr-2"></i> Filter
-                            </button>
-                        </div>
-                        <div class="flex flex-wrap gap-3">
-                            <select class="px-4 py-2 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white text-sm focus:ring-2 focus:ring-green-500">
-                                <option>All Industries</option>
-                                <option>AgriTech</option>
-                                <option>FinTech</option>
-                                <option>HealthTech</option>
-                                <option>EdTech</option>
-                            </select>
-                            <select class="px-4 py-2 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white text-sm focus:ring-2 focus:ring-green-500">
-                                <option>Location Type</option>
-                                <option>Remote</option>
-                                <option>On-site</option>
-                                <option>Hybrid</option>
-                            </select>
-                            <select class="px-4 py-2 bg-gray-900 border border-gray-600 rounded-xl outline-none text-white text-sm focus:ring-2 focus:ring-green-500">
-                                <option>Job Type</option>
-                                <option>Full-time</option>
-                                <option>Part-time</option>
-                                <option>Contract</option>
-                            </select>
-                        </div>
-                    </div>
-
                     <!-- AI Match Info -->
                     <div class="bg-green-900/20 border border-green-500/30 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <p class="text-green-200 text-sm">
                             <i data-lucide="sparkles" class="w-4 h-4 inline-block mr-1"></i>
-                            AI recommended these jobs based on your profile and <strong class="text-white">${userSkills.length} skills</strong>.
+                            AI recommended these startup opportunities based on your profile and <strong class="text-white">${userSkills.length} skills</strong>.
                         </p>
                         <button onclick="renderContent()" class="text-green-400 hover:text-green-300 text-sm font-bold flex items-center whitespace-nowrap bg-green-500/10 px-3 py-1.5 rounded-lg border border-green-500/20 transition-colors">
                             <i data-lucide="refresh-cw" class="w-4 h-4 mr-1"></i> Refresh Matches
@@ -1484,57 +1631,11 @@
                     </div>
 
                     <!-- Job Listings -->
-                    <div class="grid lg:grid-cols-2 gap-6">
-                        ${sortedJobs.map(job => {
-                            const isSaved = savedJobIds.includes(job.id);
-                            return `
-                            <div class="bg-gray-800/40 rounded-2xl border ${job.matchScore >= 80 ? 'border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.1)]' : 'border-gray-700/50'} p-6 hover:-translate-y-1 transition-all flex flex-col h-full group relative overflow-hidden">
-                                ${job.matchScore >= 90 ? '<div class="absolute -right-10 top-5 bg-green-500 text-white text-[10px] font-bold px-10 py-1 rotate-45 shadow-lg">TOP MATCH</div>' : ''}
-                                
-                                <div class="flex justify-between items-start mb-4">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-14 h-14 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center font-bold text-xl text-white border border-gray-700 shadow-inner group-hover:border-green-500/50 transition-colors">
-                                            ${job.company[0]}
-                                        </div>
-                                        <div>
-                                            <h3 class="text-lg font-bold text-white group-hover:text-green-400 transition-colors line-clamp-1">${job.title}</h3>
-                                            <p class="text-sm text-gray-400">${job.company} <span class="text-gray-600 mx-1">â€¢</span> <span class="text-gray-500">Founder: ${job.founder}</span></p>
-                                        </div>
-                                    </div>
-                                    <div class="flex flex-col items-end shrink-0 ml-2">
-                                        <span class="bg-green-500/10 text-green-400 font-bold px-2.5 py-1 rounded-lg text-sm border border-green-500/20">${job.matchScore}% Match</span>
-                                    </div>
-                                </div>
-                                
-                                <p class="text-sm text-gray-300 mb-5 line-clamp-3 flex-grow">${job.description}</p>
-                                
-                                <div class="mb-6">
-                                    <p class="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wider">Required Skills:</p>
-                                    <div class="flex flex-wrap gap-2">
-                                        ${job.requiredSkills.map(s => {
-                                            const hasSkill = userSkills.includes(s);
-                                            return `<span class="${hasSkill ? 'bg-green-900/40 text-green-300 border-green-500/30' : 'bg-gray-900 text-gray-400 border-gray-700'} border text-xs px-2.5 py-1 rounded-md flex items-center">
-                                                ${hasSkill ? `<i data-lucide="check" class="w-3 h-3 mr-1"></i>` : ''} ${s}
-                                            </span>`;
-                                        }).join('')}
-                                    </div>
-                                </div>
-
-                                <div class="flex flex-wrap items-center justify-between border-t border-gray-700/50 pt-4 mt-auto gap-4">
-                                    <div class="flex flex-wrap gap-3 text-xs text-gray-400">
-                                        <span class="flex items-center"><i data-lucide="map-pin" class="w-3.5 h-3.5 mr-1 text-gray-500"></i>${job.location}</span>
-                                        <span class="flex items-center"><i data-lucide="clock" class="w-3.5 h-3.5 mr-1 text-gray-500"></i>${job.type}</span>
-                                        <span class="flex items-center text-white font-medium bg-gray-700/50 px-2 py-0.5 rounded"><i data-lucide="dollar-sign" class="w-3.5 h-3.5 mr-0.5 text-green-400"></i>${job.salary}</span>
-                                    </div>
-                                    <div class="flex gap-2 w-full sm:w-auto">
-                                        <button onclick="toggleSaveJob(${job.id})" class="p-2 border border-gray-600 rounded-lg hover:bg-gray-700 transition text-gray-400 flex items-center justify-center shrink-0">
-                                            <i data-lucide="bookmark" class="w-5 h-5 ${isSaved ? 'fill-green-400 text-green-400' : ''}"></i>
-                                        </button>
-                                        <button onclick="applyToJob(${job.id})" class="seeker-btn text-white px-6 py-2 rounded-lg font-bold text-sm w-full sm:w-auto shadow-lg">Apply Now</button>
-                                    </div>
-                                </div>
-                            </div>
-                        `}).join('')}
+                    <div id="ai-job-container" class="grid lg:grid-cols-2 gap-6">
+                        <div class="col-span-full py-20 flex flex-col items-center justify-center">
+                            <div class="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                            <p class="text-green-400 font-medium animate-pulse">AI is analyzing startup ideas based on your skills...</p>
+                        </div>
                     </div>
                 </div>
             `;
@@ -1561,15 +1662,15 @@
                                     return `
                                     <tr class="hover:bg-gray-800/60 transition-colors">
                                         <td class="px-6 py-4">
-                                            <p class="font-bold text-white">${job ? job.title : 'Unknown Role'}</p>
-                                            <p class="text-xs text-gray-400">${job ? job.company : 'Unknown Company'}</p>
+                                            <p class="font-bold text-white">Co-founder / Core Team</p>
+                                            <p class="text-xs text-gray-400">${job ? job.name : 'Unknown Startup'}</p>
                                         </td>
                                         <td class="px-6 py-4 text-sm text-gray-300">${app.appliedDate}</td>
                                         <td class="px-6 py-4">
                                             <span class="px-3 py-1 rounded-md text-xs font-bold border border-yellow-500/30 bg-yellow-500/10 text-yellow-400">${app.status}</span>
                                         </td>
                                         <td class="px-6 py-4 text-right">
-                                            <button onclick="withdrawApplication(${app.id})" class="text-sm text-red-400 hover:underline">Withdraw</button>
+                                            <button onclick="withdrawApplication('${app.id}')" class="text-sm text-red-400 hover:underline">Withdraw</button>
                                         </td>
                                     </tr>
                                 `}).join('')}
@@ -1598,13 +1699,13 @@
                                 <div class="bg-gray-800/40 rounded-2xl border border-gray-700/50 p-6 shadow-lg">
                                     <div class="flex justify-between">
                                         <div>
-                                            <h3 class="font-bold text-white text-lg">${job.title}</h3>
-                                            <p class="text-sm text-green-400">${job.company}</p>
+                                            <h3 class="font-bold text-white text-lg">Co-founder / Core Team</h3>
+                                            <p class="text-sm text-green-400">${job.name}</p>
                                         </div>
-                                        <button onclick="toggleSaveJob(${job.id})" class="text-green-400 hover:text-gray-400 transition"><i data-lucide="bookmark" class="w-6 h-6 fill-current"></i></button>
+                                        <button onclick="toggleSaveJob('${job.id}')" class="text-green-400 hover:text-gray-400 transition"><i data-lucide="bookmark" class="w-6 h-6 fill-current"></i></button>
                                     </div>
                                     <div class="mt-6 flex gap-3">
-                                        <button onclick="applyToJob(${job.id})" class="seeker-btn text-white px-6 py-2 rounded-lg font-bold text-sm w-full">Apply Now</button>
+                                        <button onclick="applyToJob('${job.id}')" class="seeker-btn text-white px-6 py-2 rounded-lg font-bold text-sm w-full">Apply Now</button>
                                     </div>
                                 </div>
                             `).join('')}
@@ -1650,7 +1751,10 @@
         
         // RENDER IMMEDIATELY with localStorage data — don't wait for Firebase
         // Start community listener FIRST for fastest post loading
-        fetchCommunityPosts();
+        if (typeof window.fetchCommunityPosts === "function") {
+            window.fetchCommunityPosts();
+        }
+        
         setTab('community');
         
         // Then load fresh data from Firebase and re-render
